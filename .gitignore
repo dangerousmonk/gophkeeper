@@ -12,8 +12,7 @@
 *.out
 
 # Binaries
-cmd/gophermart/main
-cmd/gophermart/gophermart
+bin/
 
 # Dependency directories (remove the comment below to include it)
 vendor/
@@ -23,3 +22,6 @@ vendor/
 .vscode
 
 *.env
+
+# Downloads directory
+downloads/
