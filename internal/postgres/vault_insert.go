@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 )
@@ -11,10 +10,6 @@ import (
 func (r *vaultRepository) Insert(ctx context.Context, v *models.Vault) error {
 	slog.Info("repo:insert", slog.Any("user_id", v.UserID))
 	const query = `INSERT INTO vault (user_id, name, data_type, encrypted_data, meta_data) VALUES ($1, $2, $3, $4, $5)`
-	const timeout = 2
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*timeout)
-	defer cancel()
 
 	tx, err := r.db.Begin()
 	if err != nil {
