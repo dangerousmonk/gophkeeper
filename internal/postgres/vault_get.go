@@ -12,8 +12,7 @@ import (
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 )
 
-// The Attrs struct represents the data in the JSON/JSONB column. We can use
-// struct tags to control how each field is encoded.
+// The MetaData struct represents the data in the JSON/JSONB column
 type MetaData struct {
 	FileName string `json:"file_name,omitempty"`
 	FilePath string `json:"file_path,omitempty"`
@@ -21,14 +20,12 @@ type MetaData struct {
 	FileSize uint   `json:"file_size,omitempty"`
 }
 
-// Make the Attrs struct implement the driver.Valuer interface. This method
-// simply returns the JSON-encoded representation of the struct.
+// Make the MetaData struct implement the driver.Valuer interface
 func (a MetaData) Value() (driver.Value, error) {
 	return json.Marshal(a)
 }
 
-// Make the Attrs struct implement the sql.Scanner interface. This method
-// simply decodes a JSON-encoded value into the struct fields.
+// Make the MetaData struct implement the sql.Scanner interface
 func (a *MetaData) Scan(value interface{}) error {
 	b, ok := value.([]byte)
 	if !ok {
@@ -66,7 +63,7 @@ func (r *vaultRepository) GetByUserID(ctx context.Context, userID int) ([]models
 			&v.CreatedAt,
 			&v.UpdatedAt,
 			&v.Active,
-			&metaDataBytes, // Scan into bytes
+			&metaDataBytes,
 		); err != nil {
 			return nil, err
 		}

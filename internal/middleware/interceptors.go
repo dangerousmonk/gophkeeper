@@ -21,7 +21,8 @@ var (
 )
 
 const (
-	bearerPrefix string = "Bearer "
+	bearerPrefix = "Bearer "
+	headerName   = "authorization"
 )
 
 // PublicMethods is a set of gRPC methods that don't require authentication.
@@ -57,8 +58,8 @@ func AuthUnaryInterceptor(jwtManager utils.Authenticator) grpc.UnaryServerInterc
 			return nil, status.Errorf(codes.Unauthenticated, "missing metadata")
 		}
 
-		// Retrive token
-		values := md.Get("authorization")
+		// Retrieve token
+		values := md.Get(headerName)
 		if len(values) == 0 || !strings.HasPrefix(values[0], bearerPrefix) {
 			return nil, status.Errorf(codes.Unauthenticated, "missing or invalid token")
 		}
@@ -71,10 +72,7 @@ func AuthUnaryInterceptor(jwtManager utils.Authenticator) grpc.UnaryServerInterc
 		}
 		userID := claims.UserID
 
-		// Add userId to context
 		ctx = context.WithValue(ctx, userIDContextKey, userID)
-
-		// Calls the handler
 		return handler(ctx, req)
 	}
 }
@@ -88,7 +86,6 @@ func UserIDFromContext(ctx context.Context) (int, bool) {
 		return -1, false
 	}
 
-	// Type assertion with additional safety check
 	if val := ctx.Value(userIDContextKey); val != nil {
 		if userID, ok := val.(int); ok {
 			return userID, true
@@ -107,11 +104,9 @@ func (s *wrappedServerStream) Context() context.Context {
 	return s.ctx
 }
 
-// StreamAuthInterceptor for streaming RPCs
+// StreamAuthInterceptor is uses to check user token for for streaming RPCs
 func StreamAuthInterceptor(jwtManager utils.Authenticator) grpc.StreamServerInterceptor {
-	return func(
-		srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler,
-	) error {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := ss.Context()
 		userID, err := authenticate(ctx, jwtManager)
 		if err != nil {
@@ -119,10 +114,8 @@ func StreamAuthInterceptor(jwtManager utils.Authenticator) grpc.StreamServerInte
 			return status.Errorf(codes.Unauthenticated, "authentication failed: %v", err)
 		}
 
-		// Store userID in context for downstream handlers
 		ctx = context.WithValue(ctx, userIDContextKey, userID)
 
-		// Create a wrapped stream with the new context
 		wrappedStream := &wrappedServerStream{ss, ctx}
 		slog.Info("StreamAuthInterceptor: user authenticated", slog.Int("user_id", userID))
 		return handler(srv, wrappedStream)
@@ -136,7 +129,7 @@ func authenticate(ctx context.Context, jwtManager utils.Authenticator) (int, err
 		return -1, status.Errorf(codes.Unauthenticated, "missing metadata")
 	}
 
-	authHeaders := md.Get("authorization")
+	authHeaders := md.Get(headerName)
 	if len(authHeaders) == 0 {
 		return -1, status.Errorf(codes.Unauthenticated, "missing authorization header")
 	}
@@ -146,23 +139,17 @@ func authenticate(ctx context.Context, jwtManager utils.Authenticator) (int, err
 		return -1, status.Errorf(codes.Unauthenticated, "invalid authorization format")
 	}
 
-	// Extract the actual token (remove "Bearer " prefix)
 	token := strings.TrimPrefix(authHeaders[0], bearerPrefix)
 	if token == "" {
 		slog.Warn("authenticate: empty tokent", slog.Any("authHeaders", authHeaders))
 		return -1, status.Errorf(codes.Unauthenticated, "empty token")
 	}
 
-	// Validate token and extract user ID (implement your actual token validation logic)
 	claims, err := jwtManager.ValidateToken(token)
 	if err != nil {
 		slog.Warn("authenticate: invalid token", slog.String("token", token))
 		return -1, status.Errorf(codes.Unauthenticated, "invalid token")
 	}
 	userID := claims.UserID
-	if err != nil {
-		return -1, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
-	}
-
 	return userID, nil
 }

@@ -15,6 +15,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type testCtxKey struct {
+	name string
+}
+
+var (
+	userIDTestKey = &testCtxKey{"otherKey"}
+)
+
 type mockAuthenticator struct {
 	validateTokenFunc func(token string) (*utils.Claims, error)
 }
@@ -25,6 +33,33 @@ func (m *mockAuthenticator) CreateToken(userID int, duration time.Duration) (str
 
 func (m *mockAuthenticator) ValidateToken(token string) (*utils.Claims, error) {
 	return m.validateTokenFunc(token)
+}
+
+type mockServerStream struct {
+	ctx context.Context
+}
+
+func (m *mockServerStream) Context() context.Context {
+	return m.ctx
+}
+
+func (m *mockServerStream) SendMsg(interface{}) error {
+	return nil
+}
+
+func (m *mockServerStream) RecvMsg(interface{}) error {
+	return nil
+}
+
+func (m *mockServerStream) SetHeader(metadata.MD) error {
+	return nil
+}
+
+func (m *mockServerStream) SendHeader(metadata.MD) error {
+	return nil
+}
+
+func (m *mockServerStream) SetTrailer(metadata.MD) {
 }
 
 func TestAuthUnaryInterceptor(t *testing.T) {
@@ -213,7 +248,7 @@ func TestUserIDFromContext(t *testing.T) {
 		},
 		{
 			name:   "context_with_different_key",
-			ctx:    context.WithValue(context.Background(), "otherKey", 123),
+			ctx:    context.WithValue(context.Background(), userIDTestKey, 123),
 			wantID: -1,
 			wantOK: false,
 		},
@@ -242,6 +277,207 @@ func TestUserIDFromContext(t *testing.T) {
 			gotID, gotOK := UserIDFromContext(tt.ctx)
 			assert.Equal(t, tt.wantID, gotID)
 			assert.Equal(t, tt.wantOK, gotOK)
+		})
+	}
+}
+
+func TestAuthenticate(t *testing.T) {
+	tests := []struct {
+		name       string
+		ctx        context.Context
+		mockSetup  func() *mockAuthenticator
+		wantUserID int
+		wantErr    bool
+		wantCode   codes.Code
+	}{
+		{
+			name: "success",
+			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer valid-token")),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{
+					validateTokenFunc: func(token string) (*utils.Claims, error) {
+						return &utils.Claims{UserID: 123}, nil
+					},
+				}
+			},
+			wantUserID: 123,
+			wantErr:    false,
+		},
+		{
+			name: "no_metadata",
+			ctx:  context.Background(),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{}
+			},
+			wantErr:  true,
+			wantCode: codes.Unauthenticated,
+		},
+		{
+			name: "missing_authorization_header",
+			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("other-header", "value")),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{}
+			},
+			wantErr:  true,
+			wantCode: codes.Unauthenticated,
+		},
+		{
+			name: "invalid_bearer_format",
+			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "InvalidPrefix token")),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{}
+			},
+			wantErr:  true,
+			wantCode: codes.Unauthenticated,
+		},
+		{
+			name: "empty_token",
+			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer ")),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{}
+			},
+			wantErr:  true,
+			wantCode: codes.Unauthenticated,
+		},
+		{
+			name: "invalid_token",
+			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer invalid-token")),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{
+					validateTokenFunc: func(token string) (*utils.Claims, error) {
+						return nil, status.Error(codes.Unauthenticated, "invalid token")
+					},
+				}
+			},
+			wantErr:  true,
+			wantCode: codes.Unauthenticated,
+		},
+		{
+			name: "multiple_authorization_headers",
+			ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+				"authorization", "Bearer first-token",
+				"authorization", "Bearer second-token",
+			)),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{
+					validateTokenFunc: func(token string) (*utils.Claims, error) {
+						return &utils.Claims{UserID: 456}, nil
+					},
+				}
+			},
+			wantUserID: 456,
+			wantErr:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockAuth := tt.mockSetup()
+			userID, err := authenticate(tt.ctx, mockAuth)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("authenticate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr {
+				if st, ok := status.FromError(err); ok {
+					if st.Code() != tt.wantCode {
+						t.Errorf("authenticate() status code = %v, want %v", st.Code(), tt.wantCode)
+					}
+				} else {
+					t.Error("authenticate() error is not a gRPC status error")
+				}
+			} else {
+				if userID != tt.wantUserID {
+					t.Errorf("authenticate() userID = %v, want %v", userID, tt.wantUserID)
+				}
+			}
+		})
+	}
+}
+
+func TestStreamAuthInterceptor(t *testing.T) {
+	tests := []struct {
+		name      string
+		ctx       context.Context
+		mockSetup func() *mockAuthenticator
+		wantErr   bool
+		wantCode  codes.Code
+	}{
+		{
+			name: "success",
+			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer valid-token")),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{
+					validateTokenFunc: func(token string) (*utils.Claims, error) {
+						return &utils.Claims{UserID: 123}, nil
+					},
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name: "failure",
+			ctx:  context.Background(),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{}
+			},
+			wantErr:  true,
+			wantCode: codes.Unauthenticated,
+		},
+		{
+			name: "invalid_token",
+			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer invalid-token")),
+			mockSetup: func() *mockAuthenticator {
+				return &mockAuthenticator{
+					validateTokenFunc: func(token string) (*utils.Claims, error) {
+						return nil, status.Error(codes.Unauthenticated, "invalid token")
+					},
+				}
+			},
+			wantErr:  true,
+			wantCode: codes.Unauthenticated,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockAuth := tt.mockSetup()
+			interceptor := StreamAuthInterceptor(mockAuth)
+
+			stream := &mockServerStream{ctx: tt.ctx}
+			info := &grpc.StreamServerInfo{
+				FullMethod: "/test.Service/StreamMethod",
+			}
+
+			handler := func(srv any, stream grpc.ServerStream) error {
+				userID, ok := UserIDFromContext(stream.Context())
+				if !ok {
+					return status.Error(codes.Internal, "user ID not found in context")
+				}
+				if userID != 123 && tt.name == "success" {
+					return status.Errorf(codes.Internal, "user ID mismatch: got %v, want 123", userID)
+				}
+				return nil
+			}
+
+			err := interceptor(nil, stream, info, handler)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("StreamAuthInterceptor() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr {
+				if st, ok := status.FromError(err); ok {
+					if st.Code() != tt.wantCode {
+						t.Errorf("StreamAuthInterceptor() status code = %v, want %v", st.Code(), tt.wantCode)
+					}
+				} else {
+					t.Error("StreamAuthInterceptor() error is not a gRPC status error")
+				}
+			}
 		})
 	}
 }

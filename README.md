@@ -28,5 +28,7 @@ $ make proto                # Generate gRPC code from proto file
 $ make build-server         # Build server binary
 $ make build-client         # Build client binary
 $ make test                 # Run tests(without cache)
+$ make test-coverage        # Run tests with coverage
+$ make coverage-percent     # See output coverage percent
 $ make help                 # Read help message
 ```

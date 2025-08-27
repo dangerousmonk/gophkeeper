@@ -31,11 +31,6 @@ func NewGophKeeperApp(
 	vaultService *service.VaultService,
 	auth *utils.Authenticator,
 ) *GophKeeperApp {
-	// loggingOpts := []logging.Option{
-	// 	logging.WithLogOnEvents(
-	// 		logging.PayloadReceived, logging.PayloadSent,
-	// 	),
-	// }
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
 			l.Error("Recovered from panic", slog.Any("panic", p))
@@ -45,19 +40,10 @@ func NewGophKeeperApp(
 	}
 	gRPCServer := grpc.NewServer(grpc.ChainUnaryInterceptor(
 		recovery.UnaryServerInterceptor(recoveryOpts...),
-		// logging.UnaryServerInterceptor(utils.LogInterceptor(l), loggingOpts...),
 		middleware.AuthUnaryInterceptor(*auth),
 	),
 		grpc.ChainStreamInterceptor(middleware.StreamAuthInterceptor(*auth)),
 	)
-
-	// conn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	// if err != nil {
-	//     l.Error(err.Error())
-	// }
-	// defer conn.Close()
-	// gRPCClient := proto.NewGophKeeperClient(conn)
-	// gRPCClient.LoginUser()
 
 	proto.RegisterGophKeeperServer(gRPCServer, proto.NewGophKeepergRPCServer(userService, vaultService, cfg, *auth))
 	reflection.Register(gRPCServer)

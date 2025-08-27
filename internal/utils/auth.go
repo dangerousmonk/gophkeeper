@@ -13,9 +13,10 @@ const (
 )
 
 var (
-	ErrExpiredToken  = errors.New("token: has expired")
-	errInvalidToken  = errors.New("token: is invalid")
-	errInvalidClaims = errors.New("claims: failed to initialize")
+	ErrExpiredToken     = errors.New("token: has expired")
+	errInvalidToken     = errors.New("token: is invalid")
+	errInvalidClaims    = errors.New("claims: failed to initialize")
+	errNegativeDuration = errors.New("claims: duration is less or equal zero")
 )
 
 type Claims struct {
@@ -58,7 +59,7 @@ func (auth *JWTAuthenticator) CreateToken(userID int, duration time.Duration) (s
 
 func (auth *JWTAuthenticator) ValidateToken(token string) (*Claims, error) {
 	claims := &Claims{}
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
+	keyFunc := func(token *jwt.Token) (any, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
 			slog.Error("ValidateToken jwt method is not valid", slog.Bool("ok", ok))
@@ -75,6 +76,9 @@ func (auth *JWTAuthenticator) ValidateToken(token string) (*Claims, error) {
 }
 
 func NewClaims(userID int, duration time.Duration) (*Claims, error) {
+	if duration <= 0 {
+		return &Claims{}, errNegativeDuration
+	}
 	claims := &Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),

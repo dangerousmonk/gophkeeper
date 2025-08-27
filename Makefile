@@ -76,6 +76,23 @@ test:
 	go test ./... --count=1
 	@echo "Tests completed"
 
+# Run tests with coverage and generate HTML report
+.PHONY: test-coverage
+test-coverage:
+	@echo "Running tests with coverage..."
+	go test -coverprofile=coverage.out ./... --count=1
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+
+# Generate coverage percentage with formatted output
+.PHONY: coverage-percent
+coverage-percent:
+	@go test -coverprofile=coverage.out ./... > /dev/null 2>&1
+	@coverage=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}'); \
+	echo "Coverage percent is $$coverage"
+
+
 # Help message
 .PHONY: help
 help:
@@ -88,4 +105,6 @@ help:
 	@echo "  make db-down     - Stop test database container"
 	@echo "  make deps        - Install dependencies"
 	@echo "  make test        - Run tests without cache"
+	@echo "  make test-coverage - Run tests with coverage"
+	@echo "  make coverage-percent - See output coverage percent"
 	@echo "  make help        - Show this help message"

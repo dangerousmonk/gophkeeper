@@ -10,6 +10,8 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage.html
+coverage.txt
 
 # Binaries
 bin/
@@ -22,6 +24,8 @@ vendor/
 .vscode
 
 *.env
+
+.DS_Store
 
 # Downloads directory
 downloads/
