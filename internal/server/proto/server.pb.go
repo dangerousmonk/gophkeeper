@@ -946,6 +946,7 @@ type ChangePasswordRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	CurrentPassword string                 `protobuf:"bytes,1,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
 	NewPassword     string                 `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
+	Login           string                 `protobuf:"bytes,3,opt,name=login,proto3" json:"login,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -990,6 +991,13 @@ func (x *ChangePasswordRequest) GetCurrentPassword() string {
 func (x *ChangePasswordRequest) GetNewPassword() string {
 	if x != nil {
 		return x.NewPassword
+	}
+	return ""
+}
+
+func (x *ChangePasswordRequest) GetLogin() string {
+	if x != nil {
+		return x.Login
 	}
 	return ""
 }
@@ -1109,10 +1117,11 @@ const file_server_proto_rawDesc = "" +
 	"\n" +
 	"item_chunk\x18\x01 \x01(\v2\x16.server.VaultItemChunkH\x00R\titemChunk\x124\n" +
 	"\bmetadata\x18\x02 \x01(\v2\x16.server.StreamMetadataH\x00R\bmetadataB\t\n" +
-	"\apayload\"e\n" +
+	"\apayload\"{\n" +
 	"\x15ChangePasswordRequest\x12)\n" +
 	"\x10current_password\x18\x01 \x01(\tR\x0fcurrentPassword\x12!\n" +
-	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"2\n" +
+	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\x12\x14\n" +
+	"\x05login\x18\x03 \x01(\tR\x05login\"2\n" +
 	"\x16ChangePasswordResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess2\x86\x05\n" +
 	"\n" +

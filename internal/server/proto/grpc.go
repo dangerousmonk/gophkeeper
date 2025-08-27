@@ -358,7 +358,11 @@ func (srv GophKeepergRPCServer) ChangePassword(ctx context.Context, req *ChangeP
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
-	changeReq := &models.ChangePasswordRequest{CurrentPassword: req.GetCurrentPassword(), NewPassword: req.GetNewPassword()}
+	changeReq := &models.ChangePasswordRequest{
+		Login:           req.GetLogin(),
+		CurrentPassword: req.GetCurrentPassword(),
+		NewPassword:     req.GetNewPassword(),
+	}
 	_, err := srv.userService.ChangePassword(ctx, userID, changeReq)
 	if err != nil {
 		slog.Warn("ChangePassword:failed with error", slog.Any("error", err))

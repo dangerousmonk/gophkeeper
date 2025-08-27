@@ -430,11 +430,12 @@ func GetVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 	}
 }
 
-func ChangePassword(client proto.GophKeeperClient, token, currentPassword, newPassword string) tea.Cmd {
+func ChangePassword(client proto.GophKeeperClient, login, token, currentPassword, newPassword string) tea.Cmd {
 	return func() tea.Msg {
 		req := &proto.ChangePasswordRequest{
 			CurrentPassword: currentPassword,
 			NewPassword:     newPassword,
+			Login:           login,
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

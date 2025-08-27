@@ -2,32 +2,33 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 )
 
+const loginConstraint = "users_login_key"
+
+var (
+	ErrUserExists = errors.New("user already exists")
+)
+
 func (r *userRepository) Create(ctx context.Context, ru *models.RegisterUserRequest) (int, error) {
 	const query = `INSERT INTO users (login, password, last_login_at) VALUES ($1, $2, $3) RETURNING id`
-	const timeout = 2
+	const timeout = time.Second * 2
 
-	var userID int
-	ctx, cancel := context.WithTimeout(ctx, time.Second*timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	tx, err := r.db.Begin()
-	if err != nil {
-		return -1, err
-	}
-	defer tx.Rollback()
+	var userID int
 
-	err = tx.QueryRowContext(ctx, query, ru.Login, ru.HashedPassword, time.Now()).Scan(&userID)
+	err := r.db.QueryRowContext(ctx, query, ru.Login, ru.HashedPassword, time.Now()).Scan(&userID)
 
 	if err != nil {
-		return -1, err
-	}
-
-	if err := tx.Commit(); err != nil {
+		if isUniqueViolation(err, loginConstraint) {
+			return -1, ErrUserExists
+		}
 		return -1, err
 	}
 

@@ -334,7 +334,7 @@ func (m *Model) handleChangePasswordNavigation(key string) (tea.Model, tea.Cmd) 
 
 			m.Loading = true
 			m.Message = "Changing password..."
-			return m, ChangePassword(m.client, m.Token, currentPassword, newPassword)
+			return m, ChangePassword(m.client, m.Login, m.Token, currentPassword, newPassword)
 		}
 	case esc:
 		m.State = StateMainMenu

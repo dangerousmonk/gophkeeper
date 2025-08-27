@@ -39,6 +39,7 @@ type LoginUserResponse struct {
 }
 
 type ChangePasswordRequest struct {
+	Login           string `json:"login"`
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password" validate:"required,min=5"`
 }

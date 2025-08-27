@@ -2,13 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"errors"
-)
-
-var (
-	ErrUserExists   = errors.New("user already exists")
-	ErrUserNotFound = errors.New("user not found")
-	ErrAppNotFound  = errors.New("app not found")
 )
 
 // PostgresRepositories bundles all repositories that share same database connection
