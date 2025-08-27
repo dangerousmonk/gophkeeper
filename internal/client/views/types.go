@@ -17,7 +17,7 @@ const (
 	StateChangePassword
 )
 
-// // SecretType represents different types of secret data
+// SecretType represents different types of secret data
 type SecretType int
 
 const (
@@ -81,5 +81,53 @@ func getIcon(vType string) string {
 		return textIcon
 	default:
 		return folderIcon
+	}
+}
+
+// Checks whether certain app state can handle text input in forms
+func isForTextInput(s AppState) bool {
+	switch s {
+	case
+		StateRegister,
+		StateLogin,
+		StateSaveSecret,
+		StateChangePassword,
+		StateDownloadLocation:
+		return true
+	default:
+		return false
+	}
+}
+
+// Checks whether user can quit application from certain app state on ctrl+c/q
+func isForExitOnCtrl(s AppState) bool {
+	switch s {
+	case
+		StateStartMenu,
+		StateMainMenu,
+		StateViewSecrets,
+		StateViewSecretDetail,
+		StateChangePassword:
+		return true
+	default:
+		return false
+	}
+}
+
+// getPreviousState return previous possible state for AppState
+func getPreviousState(s AppState) AppState {
+	switch s {
+	case
+		StateRegister,
+		StateLogin:
+		return StateStartMenu
+	case
+		StateSaveSecret,
+		StateSecretTypeMenu:
+		return StateMainMenu
+	case StateViewSecretDetail:
+		return StateViewSecrets
+	default:
+		return StateMainMenu
 	}
 }

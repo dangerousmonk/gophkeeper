@@ -137,7 +137,7 @@ func (m *Model) renderAuthForm(title string, fields []string) string {
 		inputField := inputStyle.Render(value)
 
 		// Combine label and input field in a row
-		row := lipgloss.JoinHorizontal(lipgloss.Left, label, " ", inputField)
+		row := lipgloss.JoinHorizontal(lipgloss.Center, label, " ", inputField)
 		b.WriteString(fieldRowStyle.Render(row) + "\n\n")
 	}
 
@@ -313,7 +313,7 @@ func (m *Model) renderSaveSecretForm() string {
 		inputField := inputStyle.Render(value)
 
 		// Combine label and input field in a row
-		row := lipgloss.JoinHorizontal(lipgloss.Left, label, " ", inputField)
+		row := lipgloss.JoinHorizontal(lipgloss.Center, label, " ", inputField)
 		b.WriteString(fieldRowStyle.Render(row) + "\n\n")
 	}
 
@@ -661,7 +661,6 @@ func (m Model) renderSecretDetailView() string {
 	return b.String()
 }
 
-// TODO: fix no chance to pass own directory
 func (m Model) renderDownloadLocationView() string {
 	var b strings.Builder
 
@@ -672,36 +671,35 @@ func (m Model) renderDownloadLocationView() string {
 		Render(downLoadingIcon + " Download File")
 	b.WriteString(title + "\n\n")
 
-	vault := m.SelectedVault
-	if vault != nil {
-		infoStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#6B7280")).
-			Italic(true)
-		b.WriteString(infoStyle.Render(fmt.Sprintf("Downloading: %s\n\n", m.FormData["File Name"])))
-	}
-
 	// Download path input
 	fieldStyle := lipgloss.NewStyle().Width(20)
 	if m.Focus == 0 {
 		fieldStyle = fieldStyle.Foreground(lipgloss.Color("#7D56F4")).Bold(true)
 	}
 
+	// Create a container for the field row
 	value := m.FormData["Download Path"]
+	fieldRowStyle := lipgloss.NewStyle().Width(60)
+
+	// Label with fixed width
+	label := fieldStyle.Render("Download Path" + ":")
+
+	// Input field with consistent styling
 	inputStyle := lipgloss.NewStyle().
-		Width(50).
+		Width(30).
+		Height(1).
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#7D56F4")).
-		Foreground(lipgloss.Color("#000000"))
-
+		BorderForeground(lipgloss.Color("#7D56F4"))
 	if m.Focus == 0 {
 		inputStyle = inputStyle.BorderForeground(lipgloss.Color("#FF6B6B"))
 	}
 
-	b.WriteString(fmt.Sprintf("%s %s\n\n",
-		fieldStyle.Render("Save to:"),
-		inputStyle.Render(value),
-	))
+	inputField := inputStyle.Render(value)
+
+	// Combine label and input field in a row
+	row := lipgloss.JoinHorizontal(lipgloss.Center, label, " ", inputField)
+	b.WriteString(fieldRowStyle.Render(row) + "\n\n")
 
 	// Action buttons
 	buttonRowStyle := lipgloss.NewStyle().
@@ -798,7 +796,7 @@ func (m *Model) renderChangePasswordForm() string {
 		inputField := inputStyle.Render(displayValue)
 
 		// Combine label and input field in a row
-		row := lipgloss.JoinHorizontal(lipgloss.Left, label, " ", inputField)
+		row := lipgloss.JoinHorizontal(lipgloss.Center, label, " ", inputField)
 		b.WriteString(fieldRowStyle.Render(row) + "\n\n")
 	}
 

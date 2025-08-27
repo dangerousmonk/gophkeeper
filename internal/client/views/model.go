@@ -75,21 +75,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		key := msg.String()
 		switch msg.String() {
 		case ctrlC, q:
-			if m.State == StateStartMenu || m.State == StateMainMenu || m.State == StateViewSecrets || m.State == StateViewSecretDetail || m.State == StateChangePassword {
+			if isForExitOnCtrl(m.State) {
 				return m, tea.Quit
-			} else {
-				// Return to appropriate menu
-				if m.State == StateRegister || m.State == StateLogin {
-					m.State = StateStartMenu
-				} else if m.State == StateSaveSecret || m.State == StateSecretTypeMenu {
-					m.State = StateMainMenu
-				} else if m.State == StateViewSecretDetail {
-					m.State = StateViewSecrets
-					m.SelectedVault = nil
-				}
-				m.resetForm()
-				return m, nil
 			}
+			if m.State == StateViewSecretDetail {
+				m.SelectedVault = nil
+			}
+			m.State = getPreviousState(m.State)
+			m.resetForm()
+			return m, nil
 
 		case esc:
 			// Escape returns to previous menu
@@ -151,7 +145,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		default:
 			// Handle text input in forms
-			if (m.State == StateRegister || m.State == StateLogin || m.State == StateSaveSecret || m.State == StateChangePassword) && !m.Loading {
+			if isForTextInput(m.State) && !m.Loading {
 				m.handleTextInput(msg)
 			}
 			// Handle any unexpected states
