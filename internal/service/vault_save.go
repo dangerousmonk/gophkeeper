@@ -9,7 +9,8 @@ import (
 )
 
 func (s *VaultService) Save(ctx context.Context, req *models.Vault) (*models.Vault, error) {
-	slog.Info("service:Save", slog.Any("user_id", req.UserID))
+	const op = "VaultService:Save"
+	slog.Info(op, slog.Any("user_id", req.UserID))
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	err := validate.Struct(req)
 	if err != nil {
@@ -19,6 +20,7 @@ func (s *VaultService) Save(ctx context.Context, req *models.Vault) (*models.Vau
 
 	err = s.repo.Insert(ctx, req)
 	if err != nil {
+		slog.Warn(op, slog.Any("error", err))
 		return &models.Vault{}, err
 	}
 	return &models.Vault{}, nil

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/dangerousmonk/gophkeeper/internal/encryption"
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 	"github.com/dangerousmonk/gophkeeper/internal/postgres"
 	"github.com/dangerousmonk/gophkeeper/internal/utils"
@@ -16,12 +17,14 @@ type UserHandler interface {
 }
 
 type UserService struct {
-	repo postgres.UserRepository
+	repo      postgres.UserRepository
+	encryptor encryption.PasswordEncryptor
 }
 
-func NewUserService(repo postgres.UserRepository) *UserService {
+func NewUserService(repo postgres.UserRepository, encryptor encryption.PasswordEncryptor) *UserService {
 	return &UserService{
-		repo: repo,
+		repo:      repo,
+		encryptor: encryptor,
 	}
 }
 

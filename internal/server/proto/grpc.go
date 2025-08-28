@@ -66,7 +66,7 @@ func (srv GophKeepergRPCServer) RegisterUser(ctx context.Context, req *RegisterU
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	resp := RegisterUserResponse{Id: uint64(res.ID), Login: res.Login, Token: token, Success: res.Sucess}
+	resp := RegisterUserResponse{Id: uint64(res.ID), Login: res.Login, Token: token, Success: res.Success}
 	return &resp, nil
 }
 

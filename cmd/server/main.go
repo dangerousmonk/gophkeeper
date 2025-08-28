@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/dangerousmonk/gophkeeper/internal/config"
+	"github.com/dangerousmonk/gophkeeper/internal/encryption"
 	"github.com/dangerousmonk/gophkeeper/internal/postgres"
 	"github.com/dangerousmonk/gophkeeper/internal/server"
 	"github.com/dangerousmonk/gophkeeper/internal/service"
@@ -46,7 +47,8 @@ func main() {
 	}
 
 	repos := postgres.NewPostgresRepositories(db)
-	userService := service.NewUserService(repos.User)
+	passEncryptor := encryption.NewPaswordEncryptor()
+	userService := service.NewUserService(repos.User, passEncryptor)
 	vaultService := service.NewVaultService(repos.Vault)
 	app := server.NewGophKeeperApp(cfg, logger, userService, vaultService, &jwtAuthenticator)
 	err = app.Start()

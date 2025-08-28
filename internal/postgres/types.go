@@ -8,7 +8,7 @@ import (
 type PostgresRepositories struct {
 	User  UserRepository
 	Vault VaultRepository
-	db    *sql.DB // or connection pool
+	db    *sql.DB
 }
 
 // NewPostgresRepositories creates new repository instances with shared db connection

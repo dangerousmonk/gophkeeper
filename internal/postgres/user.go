@@ -7,7 +7,7 @@ import (
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 )
 
-//go:generate mockgen -package mocks -source types.go -destination ./mocks/mock_repository.go UserRepository
+//go:generate mockgen -package mocks -source user.go -destination ./mocks/mock_user_repository.go UserRepository
 type UserRepository interface {
 	// Ping checks whether internal storage is up and running
 	Ping(ctx context.Context) error

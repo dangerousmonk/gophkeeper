@@ -7,7 +7,7 @@ import (
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 )
 
-//go:generate mockgen -package mocks -source types.go -destination ./mocks/mock_repository.go VaultRepository
+//go:generate mockgen -package mocks -source vault.go -destination ./mocks/mock_vault_repository.go VaultRepository
 type VaultRepository interface {
 	// Insert inserts new record into vault table
 	Insert(ctx context.Context, v *models.Vault) error
@@ -19,6 +19,7 @@ type VaultRepository interface {
 	Get(ctx context.Context, id int) (models.Vault, error)
 }
 
+// vaultRepository implements VaultRepository
 type vaultRepository struct {
 	db *sql.DB
 }

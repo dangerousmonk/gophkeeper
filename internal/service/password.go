@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/dangerousmonk/gophkeeper/internal/encryption"
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 	"github.com/go-playground/validator/v10"
 )
@@ -17,6 +16,7 @@ var (
 )
 
 func (s *UserService) ChangePassword(ctx context.Context, userID int, req *models.ChangePasswordRequest) (*models.ChangePasswordResponse, error) {
+	const op = "UserService:ChangePassword"
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	err := validate.Struct(req)
 	if err != nil {
@@ -30,22 +30,27 @@ func (s *UserService) ChangePassword(ctx context.Context, userID int, req *model
 
 	user, err := s.repo.Get(ctx, req.Login)
 	if err != nil {
+		slog.Warn(op, slog.Any("error", err))
 		return &models.ChangePasswordResponse{}, err
 	}
 
-	if err := encryption.CheckPassword(req.CurrentPassword, user.PasswordHash); err != nil {
-		slog.Warn("userService:check password failed", slog.Any("error", err))
+	if err := s.encryptor.CheckPassword(req.CurrentPassword, user.PasswordHash); err != nil {
+		slog.Warn(op, slog.Any("error", err))
 		return &models.ChangePasswordResponse{Success: false}, ErrPasswordDecryptionFailed
 	}
 
-	hashedPassword, err := encryption.HashPassword(req.NewPassword)
+	hashedPassword, err := s.encryptor.HashPassword(req.NewPassword)
 	if err != nil {
+		slog.Warn(op, slog.Any("error", err))
 		return &models.ChangePasswordResponse{Success: false}, ErrPasswordEncryptionFailed
 	}
 
 	err = s.repo.UpdatePassword(ctx, userID, hashedPassword)
 	if err != nil {
+		slog.Warn(op, slog.Any("error", err))
 		return &models.ChangePasswordResponse{Success: false}, err
 	}
+
+	slog.Info(op+"success", slog.Int("user_id", userID))
 	return &models.ChangePasswordResponse{Success: true}, nil
 }

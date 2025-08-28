@@ -12,16 +12,16 @@ const (
 )
 
 type Vault struct {
-	ID            int                    `json:"id"`
-	UserID        int                    `json:"user_id"`
-	Version       int                    `json:"version"`
-	Name          string                 `json:"name"`
-	DataType      DataType               `json:"data_type"`
-	EncryptedData []byte                 `json:"encrypted_data"`
-	MetaData      map[string]interface{} `json:"meta_data"`
-	CreatedAt     time.Time              `json:"created_at"`
-	UpdatedAt     time.Time              `json:"updated_at"`
-	Active        bool                   `json:"active"`
+	ID            int            `json:"id"`
+	UserID        int            `json:"user_id" validate:"gt=0"`
+	Version       int            `json:"version"`
+	Name          string         `json:"name"`
+	DataType      DataType       `json:"data_type"`
+	EncryptedData []byte         `json:"encrypted_data"`
+	MetaData      map[string]any `json:"meta_data"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Active        bool           `json:"active"`
 }
 
 type InsertVaultRequest struct {

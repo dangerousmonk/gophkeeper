@@ -22,10 +22,10 @@ type RegisterUserRequest struct {
 }
 
 type RegisterUserResponse struct {
-	Login  string `json:"login"`
-	Token  string `json:"token"`
-	ID     int    `json:"id"`
-	Sucess bool   `json:"success"`
+	Login   string `json:"login"`
+	Token   string `json:"token"`
+	ID      int    `json:"id"`
+	Success bool   `json:"success"`
 }
 
 type LoginUserRequest struct {

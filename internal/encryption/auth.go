@@ -2,12 +2,27 @@ package encryption
 
 import (
 	"fmt"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-func HashPassword(password string) (string, error) {
+// Encryptor defines the interface for password operations
+//
+//go:generate mockgen -package mocks -source auth.go -destination ./mocks/mock_encryptor.go PasswordEncryptor
+type PasswordEncryptor interface {
+	HashPassword(password string) (string, error)
+	CheckPassword(password, hash string) error
+}
+
+// DefaultEncryptor implements Encryptor using the package functions
+type DefaultPaswordEncryptor struct{}
+
+// NewPaswordEncryptor builds new DefaultPaswordEncryptor
+func NewPaswordEncryptor() *DefaultPaswordEncryptor {
+	return &DefaultPaswordEncryptor{}
+}
+
+func (d *DefaultPaswordEncryptor) HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", fmt.Errorf("failed to hash password: %w", err)
@@ -15,19 +30,6 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func CheckPassword(password string, hashedPassword string) error {
+func (d *DefaultPaswordEncryptor) CheckPassword(password string, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-}
-
-// Removes sensitive data from error e.g password
-func SanitizeError(err error) string {
-	msg := err.Error()
-	if strings.Contains(msg, "password") {
-		msg = strings.ReplaceAll(msg, "password", "***")
-	}
-
-	if strings.Contains(msg, "auth") {
-		msg = strings.ReplaceAll(msg, "auth", "***")
-	}
-	return msg
 }
