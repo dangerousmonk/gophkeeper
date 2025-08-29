@@ -1,30 +1,30 @@
-package views
+package components
 
-// // AppState represents the current state of the application
-type AppState int
+// // appState represents the current state of the application
+type appState int
 
 const (
-	StateStartMenu AppState = iota
-	StateRegister
-	StateLogin
-	StateMainMenu
-	StateSaveSecret
-	StateViewSecrets
-	StateSecretTypeMenu
-	StateViewSecretDetail
-	StateFileDownload
-	StateDownloadLocation
-	StateChangePassword
+	stateStartMenu appState = iota
+	stateRegister
+	stateLogin
+	stateMainMenu
+	stateSaveSecret
+	stateViewSecrets
+	stateSecretTypeMenu
+	stateViewSecretDetail
+	stateFileDownload
+	stateDownloadLocation
+	stateChangePassword
 )
 
-// SecretType represents different types of secret data
-type SecretType int
+// secretType represents different types of secret data
+type secretType string
 
 const (
-	SecretTypeCredentials SecretType = iota
-	SecretTypeBankCard
-	SecretTypeText
-	SecretTypeFile
+	secretTypeCredential = "credentials"
+	secretTypeBankCard   = "bank_card"
+	secretTypeText       = "text"
+	secretTypeBinary     = "binary"
 )
 
 // Keyboard clicks
@@ -85,14 +85,14 @@ func getIcon(vType string) string {
 }
 
 // Checks whether certain app state can handle text input in forms
-func isForTextInput(s AppState) bool {
+func isForTextInput(s appState) bool {
 	switch s {
 	case
-		StateRegister,
-		StateLogin,
-		StateSaveSecret,
-		StateChangePassword,
-		StateDownloadLocation:
+		stateRegister,
+		stateLogin,
+		stateSaveSecret,
+		stateChangePassword,
+		stateDownloadLocation:
 		return true
 	default:
 		return false
@@ -100,14 +100,14 @@ func isForTextInput(s AppState) bool {
 }
 
 // Checks whether user can quit application from certain app state on ctrl+c/q
-func isForExitOnCtrl(s AppState) bool {
+func isForExitOnCtrl(s appState) bool {
 	switch s {
 	case
-		StateStartMenu,
-		StateMainMenu,
-		StateViewSecrets,
-		StateViewSecretDetail,
-		StateChangePassword:
+		stateStartMenu,
+		stateMainMenu,
+		stateViewSecrets,
+		stateViewSecretDetail,
+		stateChangePassword:
 		return true
 	default:
 		return false
@@ -115,19 +115,19 @@ func isForExitOnCtrl(s AppState) bool {
 }
 
 // getPreviousState return previous possible state for AppState
-func getPreviousState(s AppState) AppState {
+func getPreviousState(s appState) appState {
 	switch s {
 	case
-		StateRegister,
-		StateLogin:
-		return StateStartMenu
+		stateRegister,
+		stateLogin:
+		return stateStartMenu
 	case
-		StateSaveSecret,
-		StateSecretTypeMenu:
-		return StateMainMenu
-	case StateViewSecretDetail:
-		return StateViewSecrets
+		stateSaveSecret,
+		stateSecretTypeMenu:
+		return stateMainMenu
+	case stateViewSecretDetail:
+		return stateViewSecrets
 	default:
-		return StateMainMenu
+		return stateMainMenu
 	}
 }

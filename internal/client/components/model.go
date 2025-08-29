@@ -1,4 +1,4 @@
-package views
+package components
 
 import (
 	"fmt"
@@ -14,8 +14,8 @@ import (
 )
 
 type Model struct {
-	State         AppState
-	SecretType    SecretType
+	State         appState
+	SecretType    secretType
 	Login         string
 	Password      string
 	Focus         int
@@ -26,7 +26,7 @@ type Model struct {
 	Token         string
 	Vaults        []*proto.VaultItem
 	FormData      map[string]string
-	CurrentForm   []string
+	CurrentForm   *formDefinition
 	SelectedVault *proto.VaultItem
 
 	grpcConn *grpc.ClientConn
@@ -36,7 +36,7 @@ type Model struct {
 
 func NewModel(conn *grpc.ClientConn, client *proto.GophKeeperClient, log *slog.Logger) Model {
 	return Model{
-		State:    StateStartMenu,
+		State:    stateStartMenu,
 		Focus:    0,
 		FormData: make(map[string]string),
 		grpcConn: conn,
@@ -55,15 +55,32 @@ func (m *Model) resetForm() {
 	m.SelectedVault = nil
 }
 
+// Helper method to initialize forms
+func (m *Model) initializeForm(sType secretType, formDef formDefinition) (tea.Model, tea.Cmd) {
+	m.resetForm()
+	m.State = stateSaveSecret
+	m.SecretType = sType
+	m.CurrentForm = &formDef
+	return m, nil
+}
+
+// Helper method to initialize auth forms
+func (m *Model) initializeAuthForm(state appState, formDef formDefinition) (tea.Model, tea.Cmd) {
+	m.resetForm()
+	m.State = state
+	m.CurrentForm = &formDef
+	return m, nil
+}
+
 func (m *Model) handleTextInput(msg tea.KeyMsg) {
-	if m.Focus < len(m.CurrentForm) {
-		field := m.CurrentForm[m.Focus]
+	if m.Focus < len(m.CurrentForm.Fields) {
+		field := m.CurrentForm.Fields[m.Focus]
 		if msg.String() == backspace {
-			if len(m.FormData[field]) > 0 {
-				m.FormData[field] = m.FormData[field][:len(m.FormData[field])-1]
+			if len(m.FormData[field.Name]) > 0 {
+				m.FormData[field.Name] = m.FormData[field.Name][:len(m.FormData[field.Name])-1]
 			}
 		} else if len(msg.String()) == 1 {
-			m.FormData[field] += msg.String()
+			m.FormData[field.Name] += msg.String()
 		}
 	}
 }
@@ -73,12 +90,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		key := msg.String()
-		switch msg.String() {
+		switch key {
 		case ctrlC, q:
 			if isForExitOnCtrl(m.State) {
 				return m, tea.Quit
 			}
-			if m.State == StateViewSecretDetail {
+			if m.State == stateViewSecretDetail {
 				m.SelectedVault = nil
 			}
 			m.State = getPreviousState(m.State)
@@ -88,49 +105,47 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case esc:
 			// Escape returns to previous menu
 			switch m.State {
-			case StateRegister, StateLogin:
-				m.State = StateStartMenu
-			case StateSaveSecret, StateSecretTypeMenu, StateChangePassword:
-				m.State = StateMainMenu
-			case StateViewSecretDetail:
-				m.State = StateViewSecrets
+			case stateRegister, stateLogin:
+				m.State = stateStartMenu
+			case stateSaveSecret, stateSecretTypeMenu, stateChangePassword:
+				m.State = stateMainMenu
+			case stateViewSecretDetail:
+				m.State = stateViewSecrets
 				m.SelectedVault = nil
 				// Reload secrets when returning from detail view
 				m.Loading = true
 				m.Message = "Refreshing secrets..."
-				return m, GetVaultsStream(m.client, m.Token, m.Password)
-			case StateViewSecrets:
-				m.State = StateMainMenu
-			case StateMainMenu:
+				return m, getVaultsStream(m.client, m.Token, m.Password)
+			case stateViewSecrets:
+				m.State = stateMainMenu
+			case stateMainMenu:
 				if m.Token != "" {
 					return m, nil
 				}
-				m.State = StateStartMenu
+				m.State = stateStartMenu
 			}
 			m.resetForm()
 			return m, nil
 
 		case tab, shiftTab, enter, up, down:
-			s := msg.String()
-
 			switch m.State {
-			case StateStartMenu:
-				return m.handleStartMenuNavigation(s)
-			case StateMainMenu:
-				return m.handleMainMenuNavigation(s)
-			case StateSecretTypeMenu:
-				return m.handleSecretTypeMenuNavigation(s)
-			case StateRegister, StateLogin:
-				return m.handleAuthFormNavigation(s)
-			case StateSaveSecret:
-				return m.handleSaveSecretNavigation(s)
-			case StateViewSecrets:
-				return m.handleViewSecretsNavigation(s)
-			case StateViewSecretDetail:
-				return m.handleViewSecretDetailNavigation(s)
-			case StateDownloadLocation:
+			case stateStartMenu:
+				return m.handleStartMenuNavigation(key)
+			case stateRegister, stateLogin:
+				return m.handleAuthFormNavigation(key)
+			case stateMainMenu:
+				return m.handleMainMenuNavigation(key)
+			case stateSecretTypeMenu:
+				return m.handleSecretTypeMenuNavigation(key)
+			case stateSaveSecret:
+				return m.handleSaveSecretNavigation(key)
+			case stateViewSecrets:
+				return m.handleViewSecretsNavigation(key)
+			case stateViewSecretDetail:
+				return m.handleViewSecretDetailNavigation(key)
+			case stateDownloadLocation:
 				return m.handleDownloadLocationNavigation(key)
-			case StateFileDownload:
+			case stateFileDownload:
 				// Block most input during download, only allow quit
 				switch key {
 				case ctrlC, q:
@@ -138,7 +153,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				default:
 					return m, nil // Ignore other keys during download
 				}
-			case StateChangePassword:
+			case stateChangePassword:
 				return m.handleChangePasswordNavigation(key)
 			}
 			return m, nil
@@ -153,7 +168,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case ctrlC, q:
 				return m, tea.Quit
 			case esc:
-				m.State = StateMainMenu // Fallback to main menu
+				m.State = stateMainMenu // Fallback to main menu
 				m.resetForm()
 				return m, nil
 			}
@@ -169,7 +184,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Success = msg.Success
 			m.Message = msg.Message
 			m.Token = msg.Token
-			m.State = StateMainMenu
+			m.State = stateMainMenu
 			m.Login = msg.Login
 			m.resetForm()
 		}
@@ -184,7 +199,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Success = msg.Success
 			m.Message = msg.Message
 			m.Token = msg.Token
-			m.State = StateMainMenu
+			m.State = stateMainMenu
 			m.Password = msg.Pasword
 			m.Login = msg.Login
 			m.resetForm()
@@ -199,7 +214,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.Success = msg.Success
 			m.Message = "Secret saved successfully!"
-			m.State = StateMainMenu
+			m.State = stateMainMenu
 			m.resetForm()
 		}
 		return m, nil
@@ -242,22 +257,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Success = msg.Success
 			m.Message = "Secret deleted successfully!"
 			// Return to secrets list and refresh
-			m.State = StateViewSecrets
+			m.State = stateViewSecrets
 			m.SelectedVault = nil
 			m.Loading = true
 			m.Message = "Refreshing secrets..."
-			return m, GetVaultsStream(m.client, m.Token, m.Password) // Reload the updated list
+			return m, getVaultsStream(m.client, m.Token, m.Password) // Reload the updated list
 		}
 	case messages.DownloadResultMsg:
 		m.Loading = false
 		if msg.Err != nil {
 			m.Err = msg.Err
 			m.Message = "Download Error: " + msg.Err.Error()
-			m.State = StateDownloadLocation // Return to download location view
+			m.State = stateDownloadLocation // Return to download location view
 		} else {
 			m.Success = msg.Success
 			m.Message = msg.Message
-			m.State = StateViewSecretDetail // Return to detail view
+			m.State = stateViewSecretDetail // Return to detail view
 		}
 	case messages.ChangePasswordResultMsg:
 		m.Loading = false
@@ -265,8 +280,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Err = msg.Err
 			m.Message = "Password Change Error: " + msg.Err.Error()
 		} else {
-			m.State = StateMainMenu
 			m.resetForm()
+			m.State = stateMainMenu
 			m.Success = msg.Sucess
 		}
 		return m, nil
@@ -285,27 +300,27 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	switch m.State {
-	case StateStartMenu:
+	case stateStartMenu:
 		b.WriteString(m.renderAuthMenu())
-	case StateRegister:
+	case stateRegister:
 		b.WriteString(m.renderAuthForm("User Registration", []string{"Login", "Password"}))
-	case StateLogin:
+	case stateLogin:
 		b.WriteString(m.renderAuthForm("User Login", []string{"Login", "Password"}))
-	case StateMainMenu:
+	case stateMainMenu:
 		b.WriteString(m.renderMainMenu())
-	case StateSecretTypeMenu:
+	case stateSecretTypeMenu:
 		b.WriteString(m.renderSecretTypeMenu())
-	case StateSaveSecret:
+	case stateSaveSecret:
 		b.WriteString(m.renderSaveSecretForm())
-	case StateViewSecrets:
+	case stateViewSecrets:
 		b.WriteString(m.renderSecretsListView())
-	case StateViewSecretDetail:
+	case stateViewSecretDetail:
 		b.WriteString(m.renderSecretDetailView())
-	case StateDownloadLocation:
+	case stateDownloadLocation:
 		return m.renderDownloadLocationView()
-	case StateFileDownload:
+	case stateFileDownload:
 		return m.renderDownloadProgressView()
-	case StateChangePassword:
+	case stateChangePassword:
 		return m.renderChangePasswordForm()
 
 	default:

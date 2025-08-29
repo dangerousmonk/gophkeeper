@@ -1,0 +1,10 @@
+time=2025-08-29T19:15:42.165+03:00 level=INFO msg="main:setup completed"
+time=2025-08-29T19:16:01.912+03:00 level=INFO msg=GetVaultsStream:started
+time=2025-08-29T19:16:02.477+03:00 level=INFO msg="GetVaultsStream: done collecting" len=3
+time=2025-08-29T19:16:02.500+03:00 level=WARN msg="GetVaultsStream:decryption error" error="decryption failed: cipher: message authentication failed"
+time=2025-08-29T19:16:03.643+03:00 level=INFO msg=GetVaultsStream:started
+time=2025-08-29T19:16:04.101+03:00 level=INFO msg="GetVaultsStream: done collecting" len=3
+time=2025-08-29T19:16:04.127+03:00 level=WARN msg="GetVaultsStream:decryption error" error="decryption failed: cipher: message authentication failed"
+time=2025-08-29T19:16:04.923+03:00 level=INFO msg=GetVaultsStream:started
+time=2025-08-29T19:16:05.324+03:00 level=INFO msg="GetVaultsStream: done collecting" len=3
+time=2025-08-29T19:16:05.339+03:00 level=WARN msg="GetVaultsStream:decryption error" error="decryption failed: cipher: message authentication failed"

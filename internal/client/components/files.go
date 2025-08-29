@@ -1,4 +1,4 @@
-package views
+package components
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 func (m *Model) downloadFile(path string) tea.Cmd {
 	return func() tea.Msg {
 		vault := m.SelectedVault
-		if vault == nil || vault.DataType != "binary" {
+		if vault == nil || vault.DataType != secretTypeBinary {
 			return messages.DownloadResultMsg{
 				Err:     fmt.Errorf("no file selected for download"),
 				Success: false,

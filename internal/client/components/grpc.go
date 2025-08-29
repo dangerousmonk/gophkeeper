@@ -1,4 +1,4 @@
-package views
+package components
 
 import (
 	"bufio"
@@ -29,7 +29,7 @@ func contextWithToken(token string, ctx context.Context) context.Context {
 	return ctx
 }
 
-func RegisterUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
+func registerUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
 	return func() tea.Msg {
 		req := &proto.RegisterUserRequest{
 			Login:    login,
@@ -57,7 +57,7 @@ func RegisterUser(client proto.GophKeeperClient, login, password string) tea.Cmd
 	}
 }
 
-func LoginUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
+func loginUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
 	return func() tea.Msg {
 		req := &proto.LoginUserRequest{
 			Login:    login,
@@ -86,31 +86,27 @@ func LoginUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
 	}
 }
 
-func SaveVault(
+func saveVault(
 	client proto.GophKeeperClient,
 	token, password string,
-	secretType tea.Msg,
+	sType secretType,
 	formData map[string]string,
-	currentForm []string,
+	title string,
 ) tea.Cmd {
 	return func() tea.Msg {
 		var secretData map[string]string
-		var dataType string
-
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
-		switch secretType {
-		case SecretTypeCredentials:
-			dataType = "credentials"
+		switch sType {
+		case secretTypeCredential:
 			secretData = map[string]string{
 				"service":  formData["Service"],
 				"username": formData["Username"],
 				"password": formData["Password"],
 				"url":      formData["URL"],
 			}
-		case SecretTypeBankCard:
-			dataType = "bank_card"
+		case secretTypeBankCard:
 			secretData = map[string]string{
 				"card_name":   formData["Card Name"],
 				"card_number": formData["Card Number"],
@@ -118,13 +114,12 @@ func SaveVault(
 				"cvv":         formData["CVV"],
 				"cardholder":  formData["Cardholder"],
 			}
-		case SecretTypeText:
-			dataType = "text"
+		case secretTypeText:
 			secretData = map[string]string{
 				"title":   formData["Title"],
 				"content": formData["Content"],
 			}
-		case SecretTypeFile:
+		case secretTypeBinary:
 			fPath := formData["File Path"]
 			fName := formData["File Name"]
 			encryptedData, err := encryption.EncryptFile(fPath, password)
@@ -192,8 +187,8 @@ func SaveVault(
 		}
 
 		req := &proto.SaveVaultRequest{
-			Name:         formData[currentForm[0]], // First field as name
-			DataType:     dataType,
+			Name:         title,
+			DataType:     string(sType),
 			EcryptedData: encryptedData,
 		}
 
@@ -213,7 +208,7 @@ func SaveVault(
 	}
 }
 
-func DeactivateVaultGrpc(client proto.GophKeeperClient, token string, vault *proto.VaultItem) tea.Cmd {
+func deactivateVaultGrpc(client proto.GophKeeperClient, token string, vault *proto.VaultItem) tea.Cmd {
 	return func() tea.Msg {
 		if vault == nil {
 			return messages.DeactivateVaultResultMsg{
@@ -299,14 +294,14 @@ func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, enc
 	return nil
 }
 
-// VaultItemWithData represents a fully reconstructed VaultItem
-type VaultItemWithData struct {
+// vaultItemWithData represents a fully reconstructed VaultItem
+type vaultItemWithData struct {
 	*proto.VaultItem
 	ReconstructedData []byte
 }
 
-// GetVaultsStream retrieves vault items via streaming with automatic chunk reassembly
-func GetVaultsStream(client proto.GophKeeperClient, token, password string) tea.Cmd {
+// getVaultsStream retrieves vault items via streaming with automatic chunk reassembly
+func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -322,11 +317,11 @@ func GetVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 		}
 
 		var (
-			currentItem    *VaultItemWithData
+			currentItem    *vaultItemWithData
 			currentChunks  [][]byte
 			currentMeta    *proto.StreamMetadata
 			mu             sync.Mutex
-			collectedItems []*VaultItemWithData
+			collectedItems []*vaultItemWithData
 		)
 
 		for {
@@ -371,7 +366,7 @@ func GetVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 
 				// Initialize new item if this is the first chunk
 				if chunk.IsFirstChunk {
-					currentItem = &VaultItemWithData{
+					currentItem = &vaultItemWithData{
 						VaultItem: chunk.Item,
 					}
 					currentChunks = make([][]byte, chunk.TotalChunks)
@@ -430,7 +425,7 @@ func GetVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 	}
 }
 
-func ChangePassword(client proto.GophKeeperClient, login, token, currentPassword, newPassword string) tea.Cmd {
+func changePassword(client proto.GophKeeperClient, login, token, currentPassword, newPassword string) tea.Cmd {
 	return func() tea.Msg {
 		req := &proto.ChangePasswordRequest{
 			CurrentPassword: currentPassword,

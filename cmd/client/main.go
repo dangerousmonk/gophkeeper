@@ -7,7 +7,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/dangerousmonk/gophkeeper/internal/client/views"
+	"github.com/dangerousmonk/gophkeeper/internal/client/components"
 	"github.com/dangerousmonk/gophkeeper/internal/config"
 	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
 	"github.com/dangerousmonk/gophkeeper/internal/utils"
@@ -44,7 +44,7 @@ func main() {
 
 	logger.Info("main:setup completed")
 
-	p := tea.NewProgram(views.NewModel(conn, &client, logger), tea.WithAltScreen())
+	p := tea.NewProgram(components.NewModel(conn, &client, logger), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		logger.Error("main:tea run failed", slog.Any("error", err))
 		os.Exit(1)

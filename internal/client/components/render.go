@@ -1,4 +1,4 @@
-package views
+package components
 
 import (
 	"encoding/json"
@@ -105,14 +105,14 @@ func (m *Model) renderAuthForm(title string, fields []string) string {
 	b.WriteString(titleStyle.Render(title) + "\n\n")
 
 	// Form fields
-	for i, field := range fields {
+	for i, field := range m.CurrentForm.Fields {
 		fieldStyle := lipgloss.NewStyle().Width(12) // Fixed width for labels
 		if m.Focus == i {
 			fieldStyle = fieldStyle.Foreground(lipgloss.Color("#7D56F4")).Bold(true)
 		}
 
-		value := m.FormData[field]
-		if field == "Password" {
+		value := m.FormData[field.Name]
+		if field.Name == "Password" {
 			value = strings.Repeat("•", len(value))
 		}
 
@@ -120,7 +120,7 @@ func (m *Model) renderAuthForm(title string, fields []string) string {
 		fieldRowStyle := lipgloss.NewStyle().Width(60) // Fixed width for entire row
 
 		// Label with fixed width
-		label := fieldStyle.Render(field + ":")
+		label := fieldStyle.Render(field.Name + ":")
 
 		// Input field with consistent styling
 		inputStyle := lipgloss.NewStyle().
@@ -265,11 +265,11 @@ func (m *Model) renderSaveSecretForm() string {
 
 	title := "Save Secret"
 	switch m.SecretType {
-	case SecretTypeCredentials:
+	case secretTypeCredential:
 		title = credentialsIcon + " Save Login/Password"
-	case SecretTypeBankCard:
+	case secretTypeBankCard:
 		title = bankCardIcon + " Save Bank Card"
-	case SecretTypeText:
+	case secretTypeText:
 		title = textIcon + " Save Text Note"
 	}
 
@@ -280,15 +280,15 @@ func (m *Model) renderSaveSecretForm() string {
 	b.WriteString(titleStyle.Render(title) + "\n\n")
 
 	// Form fields
-	for i, field := range m.CurrentForm {
+	for i, field := range m.CurrentForm.Fields {
 		fieldStyle := lipgloss.NewStyle().Width(15) // Fixed width for labels
 		if m.Focus == i {
 			fieldStyle = fieldStyle.Foreground(lipgloss.Color("#7D56F4")).Bold(true)
 		}
 
-		value := m.FormData[field]
+		value := m.FormData[field.Name]
 
-		if strings.Contains(strings.ToLower(field), "password") || field == "cvv" || field == "cvc" {
+		if strings.Contains(strings.ToLower(field.Name), "password") || field.Name == "cvv" || field.Name == "cvc" {
 			value = strings.Repeat("•", len(value))
 		}
 
@@ -296,7 +296,7 @@ func (m *Model) renderSaveSecretForm() string {
 		fieldRowStyle := lipgloss.NewStyle().Width(60) // Fixed width for entire row
 
 		// Label with fixed width
-		label := fieldStyle.Render(field + ":")
+		label := fieldStyle.Render(field.Name + ":")
 
 		// Input field with consistent styling
 		inputStyle := lipgloss.NewStyle().
@@ -325,7 +325,7 @@ func (m *Model) renderSaveSecretForm() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#7D56F4"))
 
-	if m.Focus == len(m.CurrentForm) {
+	if m.Focus == len(m.CurrentForm.Fields) {
 		buttonStyle = buttonStyle.
 			Background(lipgloss.Color("#7D56F4")).
 			Foreground(lipgloss.Color("#FFFFFF")).
@@ -556,7 +556,7 @@ func (m Model) renderSecretDetailView() string {
 	b.WriteString(infoStyle.Render(infoContent) + "\n\n")
 
 	// Show file details for binary data type
-	if vault.DataType == "binary" {
+	if vault.DataType == secretTypeBinary {
 		fileDetails := renderFileDetails(vault)
 		b.WriteString(fileDetails + "\n\n")
 	} else {
@@ -592,7 +592,7 @@ func (m Model) renderSecretDetailView() string {
 	buttons = append(buttons, backButtonStyle.Render("← Back"))
 
 	// Download button (only for binary/files)
-	if vault.DataType == "binary" {
+	if vault.DataType == secretTypeBinary {
 		downloadButtonStyle := lipgloss.NewStyle().
 			Width(15).
 			Height(1).
@@ -614,7 +614,7 @@ func (m Model) renderSecretDetailView() string {
 	}
 
 	deleteButtonIndex := 1
-	if vault.DataType == "binary" {
+	if vault.DataType == secretTypeBinary {
 		deleteButtonIndex = 2 // Back(0), Download(1), Delete(2)
 	}
 
@@ -639,7 +639,7 @@ func (m Model) renderSecretDetailView() string {
 
 	// Join buttons with appropriate spacing
 	var buttonRow string
-	if vault.DataType == "binary" {
+	if vault.DataType == secretTypeBinary {
 		buttonRow = lipgloss.JoinHorizontal(lipgloss.Center,
 			buttons[0], "   ", buttons[1], "   ", buttons[2])
 	} else {
@@ -765,21 +765,20 @@ func (m *Model) renderChangePasswordForm() string {
 	b.WriteString(title + "\n\n")
 
 	// Form fields
-	fields := []string{"Current Password", "New Password", "Confirm New Password"}
-	for i, field := range fields {
+	for i, field := range m.CurrentForm.Fields {
 		fieldStyle := lipgloss.NewStyle().Width(12)
 		if m.Focus == i {
 			fieldStyle = fieldStyle.Foreground(lipgloss.Color("#7D56F4")).Bold(true)
 		}
 
-		value := m.FormData[field]
+		value := m.FormData[field.Name]
 		displayValue := strings.Repeat("•", len(value))
 
 		// Create a container for the field row
 		fieldRowStyle := lipgloss.NewStyle().Width(60)
 
 		// Label with fixed width
-		label := fieldStyle.Render(field + ":")
+		label := fieldStyle.Render(field.Name + ":")
 
 		// Input field with consistent styling
 		inputStyle := lipgloss.NewStyle().
@@ -809,7 +808,7 @@ func (m *Model) renderChangePasswordForm() string {
 		BorderForeground(lipgloss.Color("#7D56F4")).
 		Align(lipgloss.Center)
 
-	if m.Focus == len(fields) {
+	if m.Focus == len(m.CurrentForm.Fields) {
 		buttonStyle = buttonStyle.
 			Background(lipgloss.Color("#7D56F4")).
 			Foreground(lipgloss.Color("#FFFFFF")).
