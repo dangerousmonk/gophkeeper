@@ -10,10 +10,11 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage.html
+coverage.txt
 
 # Binaries
-cmd/gophermart/main
-cmd/gophermart/gophermart
+bin/
 
 # Dependency directories (remove the comment below to include it)
 vendor/
@@ -23,3 +24,8 @@ vendor/
 .vscode
 
 *.env
+
+.DS_Store
+
+# Downloads directory
+downloads/
