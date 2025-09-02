@@ -5,18 +5,18 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/dangerousmonk/gophkeeper/internal/auth"
 	encryptm "github.com/dangerousmonk/gophkeeper/internal/encryption/mocks"
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 	"github.com/dangerousmonk/gophkeeper/internal/postgres"
 	pgm "github.com/dangerousmonk/gophkeeper/internal/postgres/mocks"
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLogin(t *testing.T) {
 	testUser := models.User{ID: 1, Login: "guest", PasswordHash: "$2a$10$JlBjqiVSWraOUZ8SkHwnmO38Vfscr3bloe8eDlObLBFwRImhJjsbq", Active: true}
-	jwtAuthenticator, err := utils.NewJWTAuthenticator("secretkeysecretkeysecretkeykeyke")
+	jwtAuthenticator, err := auth.NewJWTAuthenticator("secretkeysecretkeysecretkeykeyke")
 	require.NoError(t, err)
 
 	repoError := errors.New("driver: bad connection")

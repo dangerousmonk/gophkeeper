@@ -6,12 +6,13 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/dangerousmonk/gophkeeper/internal/auth"
 	"github.com/dangerousmonk/gophkeeper/internal/config"
 	"github.com/dangerousmonk/gophkeeper/internal/encryption"
+	"github.com/dangerousmonk/gophkeeper/internal/logger"
 	"github.com/dangerousmonk/gophkeeper/internal/postgres"
 	"github.com/dangerousmonk/gophkeeper/internal/server"
 	"github.com/dangerousmonk/gophkeeper/internal/service"
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 		log.Fatalf("main:LoadConfig failed error=%v", err)
 	}
 
-	logger := utils.InitLogger(cfg.Environment, os.Stdout)
+	logger := logger.InitLogger(cfg.Environment, os.Stdout)
 	slog.SetDefault(logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -40,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	jwtAuthenticator, err := utils.NewJWTAuthenticator(cfg.JWTSecret)
+	jwtAuthenticator, err := auth.NewJWTAuthenticator(cfg.JWTSecret)
 	if err != nil {
 		logger.Error("main:NewJWTAuthenticator failed", slog.Any("error", err))
 		os.Exit(1)

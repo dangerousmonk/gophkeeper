@@ -1,4 +1,4 @@
-package utils
+package files
 
 import (
 	"bytes"
@@ -11,24 +11,24 @@ import (
 type ByteSize uint64
 
 const (
-	B  ByteSize = 1
-	KB          = B << 10
-	MB          = KB << 10
-	GB          = MB << 10
-	TB          = GB << 10
+	b  ByteSize = 1
+	kb          = b << 10
+	mb          = kb << 10
+	gb          = mb << 10
+	tb          = gb << 10
 )
 
 // FormatFileSize is a helper to format file size from bytes to other units
 func FormatFileSize(size int64) string {
 	switch {
-	case size < int64(KB):
+	case size < int64(kb):
 		return fmt.Sprintf("%d bytes", size)
-	case size < int64(MB):
-		return fmt.Sprintf("%.1f KB", float64(size)/float64(KB))
-	case size < int64(GB):
-		return fmt.Sprintf("%.1f MB", float64(size)/float64(MB))
-	case size < int64(TB):
-		return fmt.Sprintf("%.1f GB", float64(size)/float64(GB))
+	case size < int64(mb):
+		return fmt.Sprintf("%.1f KB", float64(size)/float64(kb))
+	case size < int64(gb):
+		return fmt.Sprintf("%.1f MB", float64(size)/float64(mb))
+	case size < int64(tb):
+		return fmt.Sprintf("%.1f GB", float64(size)/float64(gb))
 	default:
 		return fmt.Sprintf("%d bytes", size)
 	}

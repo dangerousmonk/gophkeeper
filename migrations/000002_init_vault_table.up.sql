@@ -1,6 +1,6 @@
 CREATE TYPE vault_type AS ENUM ('credentials', 'text', 'binary', 'bank_card');
 CREATE TABLE IF NOT EXISTS vault (
-    id  BIGSERIAL PRIMARY KEY,
+    id  BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR NOT NULL,
     data_type vault_type NOT NULL,

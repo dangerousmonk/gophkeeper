@@ -10,31 +10,35 @@ import "google/protobuf/struct.proto";
 
 service GophKeeper {
   // Service health
-  rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc Ping(PingRequest) returns (PingResponse);
   // Register new user
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   // Login user
   rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
+  // Change user password
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
   // SaveVault saves new record to vault
   rpc SaveVault(SaveVaultRequest) returns (SaveVaultResponse);
-  // Retrieves all vaults saved by user
-  rpc GetVaults(google.protobuf.Empty) returns (GetUserVaultsResponse);
   // Login user
   rpc DeactivateVault(DeactivateVaultRequest) returns (DeactivateVaultResponse);
   // UploadFile is used to send binary data as stream of chunks
   rpc UploadFile (stream UploadFileRequest) returns (VaultItem);
   // Retrieve all vaults saved by user using streamed response
-  rpc GetSteamedVaults(google.protobuf.Empty) returns (stream StreamVaultsResponse);
-  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc GetSteamedVaults(StreamVaultsRequest) returns (stream StreamVaultsResponse);
 }
 
-// Message represents request to register new user
+// Messages for service health
+message PingRequest {}
+
+message PingResponse {}
+
+
+// Messages for user registration
 message RegisterUserRequest {
     string login = 1;
     string password = 2;
 }
 
-// Message represents response to register new user
 message RegisterUserResponse {
     uint64 id = 1;
     string login = 2;
@@ -42,19 +46,29 @@ message RegisterUserResponse {
     bool success = 4;
 }
 
-// Message represents request to login user
+// Messages for user login
 message LoginUserRequest {
     string login = 1;
     string password = 2;
 }
 
-// Message represents response to login user
 message LoginUserResponse {
     string token = 1;
     bool success = 2;
 }
 
-// Message represents request to save data to vault
+// Messages for changing password
+message ChangePasswordRequest {
+    string current_password = 1;
+    string new_password = 2;
+    string login = 3;
+}
+
+message ChangePasswordResponse {
+    bool success = 1;
+}
+
+// Message for saving new vault data
 message SaveVaultRequest {
     string name = 1;
     string data_type = 2;
@@ -62,11 +76,20 @@ message SaveVaultRequest {
     google.protobuf.Struct meta_data = 4;
 }
 
-// Message represents response to to save data to vault
 message SaveVaultResponse {
     bool success = 1;
 }
 
+// Message for soft deletion of user's vault record
+message DeactivateVaultRequest {
+    int32 secret_id = 1;
+}
+
+message DeactivateVaultResponse {
+    bool success = 1;
+}
+
+// Messages for fetching user's vaults using streams
 message VaultItem {
     int32 id = 1;
     int32 user_id = 2;
@@ -80,31 +103,6 @@ message VaultItem {
     int32 version = 10;
 }
 
-// Message represents response to retrieve all vaults saved by user
-message GetUserVaultsResponse {
-    repeated VaultItem vaults = 1;
-}
-
-// Message represents request to soft delete secret from vault
-message DeactivateVaultRequest {
-    int32 secret_id = 1;
-}
-
-// Message represents response to soft delete secret from vault
-message DeactivateVaultResponse {
-    bool success = 1;
-}
-
-// Message represents request to send streamed file data
-message UploadFileRequest {
-    string file_name = 1;
-    oneof data {
-        bytes chunk_data = 2;
-        google.protobuf.Struct meta_data = 3;
-  };
-}
-
-// Message represents streamed response to retrieve all vaults saved by user
 message VaultItemChunk {
     VaultItem item = 1;
     bytes encrypted_data_chunk = 2;
@@ -121,6 +119,9 @@ message StreamMetadata {
     bool is_last_item = 4;
 }
 
+
+message StreamVaultsRequest {}
+
 message StreamVaultsResponse {
     oneof payload {
         VaultItemChunk item_chunk = 1;
@@ -128,12 +129,11 @@ message StreamVaultsResponse {
     }
 }
 
-message ChangePasswordRequest {
-    string current_password = 1;
-    string new_password = 2;
-    string login = 3;
-}
-
-message ChangePasswordResponse {
-    bool success = 1;
+// Messages for uploading file data into the vault using chunks
+message UploadFileRequest {
+    string file_name = 1;
+    oneof data {
+        bytes chunk_data = 2;
+        google.protobuf.Struct meta_data = 3;
+  };
 }

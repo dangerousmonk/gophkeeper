@@ -9,7 +9,7 @@ package proto
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	_ "google.golang.org/protobuf/types/known/emptypb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
@@ -23,7 +23,80 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Message represents request to register new user
+// Messages for service health
+type PingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PingRequest) Reset() {
+	*x = PingRequest{}
+	mi := &file_server_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PingRequest) ProtoMessage() {}
+
+func (x *PingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PingRequest.ProtoReflect.Descriptor instead.
+func (*PingRequest) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{0}
+}
+
+type PingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PingResponse) Reset() {
+	*x = PingResponse{}
+	mi := &file_server_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PingResponse) ProtoMessage() {}
+
+func (x *PingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PingResponse.ProtoReflect.Descriptor instead.
+func (*PingResponse) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{1}
+}
+
+// Messages for user registration
 type RegisterUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Login         string                 `protobuf:"bytes,1,opt,name=login,proto3" json:"login,omitempty"`
@@ -34,7 +107,7 @@ type RegisterUserRequest struct {
 
 func (x *RegisterUserRequest) Reset() {
 	*x = RegisterUserRequest{}
-	mi := &file_server_proto_msgTypes[0]
+	mi := &file_server_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +119,7 @@ func (x *RegisterUserRequest) String() string {
 func (*RegisterUserRequest) ProtoMessage() {}
 
 func (x *RegisterUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[0]
+	mi := &file_server_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +132,7 @@ func (x *RegisterUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterUserRequest.ProtoReflect.Descriptor instead.
 func (*RegisterUserRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{0}
+	return file_server_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RegisterUserRequest) GetLogin() string {
@@ -76,7 +149,6 @@ func (x *RegisterUserRequest) GetPassword() string {
 	return ""
 }
 
-// Message represents response to register new user
 type RegisterUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -89,7 +161,7 @@ type RegisterUserResponse struct {
 
 func (x *RegisterUserResponse) Reset() {
 	*x = RegisterUserResponse{}
-	mi := &file_server_proto_msgTypes[1]
+	mi := &file_server_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -101,7 +173,7 @@ func (x *RegisterUserResponse) String() string {
 func (*RegisterUserResponse) ProtoMessage() {}
 
 func (x *RegisterUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[1]
+	mi := &file_server_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -114,7 +186,7 @@ func (x *RegisterUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterUserResponse.ProtoReflect.Descriptor instead.
 func (*RegisterUserResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{1}
+	return file_server_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RegisterUserResponse) GetId() uint64 {
@@ -145,7 +217,7 @@ func (x *RegisterUserResponse) GetSuccess() bool {
 	return false
 }
 
-// Message represents request to login user
+// Messages for user login
 type LoginUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Login         string                 `protobuf:"bytes,1,opt,name=login,proto3" json:"login,omitempty"`
@@ -156,7 +228,7 @@ type LoginUserRequest struct {
 
 func (x *LoginUserRequest) Reset() {
 	*x = LoginUserRequest{}
-	mi := &file_server_proto_msgTypes[2]
+	mi := &file_server_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -168,7 +240,7 @@ func (x *LoginUserRequest) String() string {
 func (*LoginUserRequest) ProtoMessage() {}
 
 func (x *LoginUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[2]
+	mi := &file_server_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -181,7 +253,7 @@ func (x *LoginUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginUserRequest.ProtoReflect.Descriptor instead.
 func (*LoginUserRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{2}
+	return file_server_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *LoginUserRequest) GetLogin() string {
@@ -198,7 +270,6 @@ func (x *LoginUserRequest) GetPassword() string {
 	return ""
 }
 
-// Message represents response to login user
 type LoginUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
@@ -209,7 +280,7 @@ type LoginUserResponse struct {
 
 func (x *LoginUserResponse) Reset() {
 	*x = LoginUserResponse{}
-	mi := &file_server_proto_msgTypes[3]
+	mi := &file_server_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -221,7 +292,7 @@ func (x *LoginUserResponse) String() string {
 func (*LoginUserResponse) ProtoMessage() {}
 
 func (x *LoginUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[3]
+	mi := &file_server_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -234,7 +305,7 @@ func (x *LoginUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginUserResponse.ProtoReflect.Descriptor instead.
 func (*LoginUserResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{3}
+	return file_server_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *LoginUserResponse) GetToken() string {
@@ -251,7 +322,112 @@ func (x *LoginUserResponse) GetSuccess() bool {
 	return false
 }
 
-// Message represents request to save data to vault
+// Messages for changing password
+type ChangePasswordRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPassword string                 `protobuf:"bytes,1,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	NewPassword     string                 `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
+	Login           string                 `protobuf:"bytes,3,opt,name=login,proto3" json:"login,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ChangePasswordRequest) Reset() {
+	*x = ChangePasswordRequest{}
+	mi := &file_server_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangePasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangePasswordRequest) ProtoMessage() {}
+
+func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
+func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ChangePasswordRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
+	}
+	return ""
+}
+
+func (x *ChangePasswordRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
+func (x *ChangePasswordRequest) GetLogin() string {
+	if x != nil {
+		return x.Login
+	}
+	return ""
+}
+
+type ChangePasswordResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChangePasswordResponse) Reset() {
+	*x = ChangePasswordResponse{}
+	mi := &file_server_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangePasswordResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangePasswordResponse) ProtoMessage() {}
+
+func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangePasswordResponse.ProtoReflect.Descriptor instead.
+func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ChangePasswordResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Message for saving new vault data
 type SaveVaultRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -264,7 +440,7 @@ type SaveVaultRequest struct {
 
 func (x *SaveVaultRequest) Reset() {
 	*x = SaveVaultRequest{}
-	mi := &file_server_proto_msgTypes[4]
+	mi := &file_server_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -276,7 +452,7 @@ func (x *SaveVaultRequest) String() string {
 func (*SaveVaultRequest) ProtoMessage() {}
 
 func (x *SaveVaultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[4]
+	mi := &file_server_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -289,7 +465,7 @@ func (x *SaveVaultRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveVaultRequest.ProtoReflect.Descriptor instead.
 func (*SaveVaultRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{4}
+	return file_server_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SaveVaultRequest) GetName() string {
@@ -320,7 +496,6 @@ func (x *SaveVaultRequest) GetMetaData() *structpb.Struct {
 	return nil
 }
 
-// Message represents response to to save data to vault
 type SaveVaultResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
@@ -330,7 +505,7 @@ type SaveVaultResponse struct {
 
 func (x *SaveVaultResponse) Reset() {
 	*x = SaveVaultResponse{}
-	mi := &file_server_proto_msgTypes[5]
+	mi := &file_server_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -342,7 +517,7 @@ func (x *SaveVaultResponse) String() string {
 func (*SaveVaultResponse) ProtoMessage() {}
 
 func (x *SaveVaultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[5]
+	mi := &file_server_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -355,7 +530,7 @@ func (x *SaveVaultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveVaultResponse.ProtoReflect.Descriptor instead.
 func (*SaveVaultResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{5}
+	return file_server_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SaveVaultResponse) GetSuccess() bool {
@@ -365,6 +540,96 @@ func (x *SaveVaultResponse) GetSuccess() bool {
 	return false
 }
 
+// Message for soft deletion of user's vault record
+type DeactivateVaultRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SecretId      int32                  `protobuf:"varint,1,opt,name=secret_id,json=secretId,proto3" json:"secret_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeactivateVaultRequest) Reset() {
+	*x = DeactivateVaultRequest{}
+	mi := &file_server_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeactivateVaultRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeactivateVaultRequest) ProtoMessage() {}
+
+func (x *DeactivateVaultRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeactivateVaultRequest.ProtoReflect.Descriptor instead.
+func (*DeactivateVaultRequest) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeactivateVaultRequest) GetSecretId() int32 {
+	if x != nil {
+		return x.SecretId
+	}
+	return 0
+}
+
+type DeactivateVaultResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeactivateVaultResponse) Reset() {
+	*x = DeactivateVaultResponse{}
+	mi := &file_server_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeactivateVaultResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeactivateVaultResponse) ProtoMessage() {}
+
+func (x *DeactivateVaultResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeactivateVaultResponse.ProtoReflect.Descriptor instead.
+func (*DeactivateVaultResponse) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *DeactivateVaultResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Messages for fetching user's vaults using streams
 type VaultItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -383,7 +648,7 @@ type VaultItem struct {
 
 func (x *VaultItem) Reset() {
 	*x = VaultItem{}
-	mi := &file_server_proto_msgTypes[6]
+	mi := &file_server_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -395,7 +660,7 @@ func (x *VaultItem) String() string {
 func (*VaultItem) ProtoMessage() {}
 
 func (x *VaultItem) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[6]
+	mi := &file_server_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -408,7 +673,7 @@ func (x *VaultItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VaultItem.ProtoReflect.Descriptor instead.
 func (*VaultItem) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{6}
+	return file_server_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *VaultItem) GetId() int32 {
@@ -481,233 +746,6 @@ func (x *VaultItem) GetVersion() int32 {
 	return 0
 }
 
-// Message represents response to retrieve all vaults saved by user
-type GetUserVaultsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Vaults        []*VaultItem           `protobuf:"bytes,1,rep,name=vaults,proto3" json:"vaults,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetUserVaultsResponse) Reset() {
-	*x = GetUserVaultsResponse{}
-	mi := &file_server_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetUserVaultsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetUserVaultsResponse) ProtoMessage() {}
-
-func (x *GetUserVaultsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetUserVaultsResponse.ProtoReflect.Descriptor instead.
-func (*GetUserVaultsResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *GetUserVaultsResponse) GetVaults() []*VaultItem {
-	if x != nil {
-		return x.Vaults
-	}
-	return nil
-}
-
-// Message represents request to soft delete secret from vault
-type DeactivateVaultRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SecretId      int32                  `protobuf:"varint,1,opt,name=secret_id,json=secretId,proto3" json:"secret_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeactivateVaultRequest) Reset() {
-	*x = DeactivateVaultRequest{}
-	mi := &file_server_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeactivateVaultRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeactivateVaultRequest) ProtoMessage() {}
-
-func (x *DeactivateVaultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeactivateVaultRequest.ProtoReflect.Descriptor instead.
-func (*DeactivateVaultRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *DeactivateVaultRequest) GetSecretId() int32 {
-	if x != nil {
-		return x.SecretId
-	}
-	return 0
-}
-
-// Message represents response to soft delete secret from vault
-type DeactivateVaultResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeactivateVaultResponse) Reset() {
-	*x = DeactivateVaultResponse{}
-	mi := &file_server_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeactivateVaultResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeactivateVaultResponse) ProtoMessage() {}
-
-func (x *DeactivateVaultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeactivateVaultResponse.ProtoReflect.Descriptor instead.
-func (*DeactivateVaultResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *DeactivateVaultResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-// Message represents request to send streamed file data
-type UploadFileRequest struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	FileName string                 `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
-	// Types that are valid to be assigned to Data:
-	//
-	//	*UploadFileRequest_ChunkData
-	//	*UploadFileRequest_MetaData
-	Data          isUploadFileRequest_Data `protobuf_oneof:"data"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UploadFileRequest) Reset() {
-	*x = UploadFileRequest{}
-	mi := &file_server_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UploadFileRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UploadFileRequest) ProtoMessage() {}
-
-func (x *UploadFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UploadFileRequest.ProtoReflect.Descriptor instead.
-func (*UploadFileRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *UploadFileRequest) GetFileName() string {
-	if x != nil {
-		return x.FileName
-	}
-	return ""
-}
-
-func (x *UploadFileRequest) GetData() isUploadFileRequest_Data {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-func (x *UploadFileRequest) GetChunkData() []byte {
-	if x != nil {
-		if x, ok := x.Data.(*UploadFileRequest_ChunkData); ok {
-			return x.ChunkData
-		}
-	}
-	return nil
-}
-
-func (x *UploadFileRequest) GetMetaData() *structpb.Struct {
-	if x != nil {
-		if x, ok := x.Data.(*UploadFileRequest_MetaData); ok {
-			return x.MetaData
-		}
-	}
-	return nil
-}
-
-type isUploadFileRequest_Data interface {
-	isUploadFileRequest_Data()
-}
-
-type UploadFileRequest_ChunkData struct {
-	ChunkData []byte `protobuf:"bytes,2,opt,name=chunk_data,json=chunkData,proto3,oneof"`
-}
-
-type UploadFileRequest_MetaData struct {
-	MetaData *structpb.Struct `protobuf:"bytes,3,opt,name=meta_data,json=metaData,proto3,oneof"`
-}
-
-func (*UploadFileRequest_ChunkData) isUploadFileRequest_Data() {}
-
-func (*UploadFileRequest_MetaData) isUploadFileRequest_Data() {}
-
-// Message represents streamed response to retrieve all vaults saved by user
 type VaultItemChunk struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Item               *VaultItem             `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
@@ -722,7 +760,7 @@ type VaultItemChunk struct {
 
 func (x *VaultItemChunk) Reset() {
 	*x = VaultItemChunk{}
-	mi := &file_server_proto_msgTypes[11]
+	mi := &file_server_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -734,7 +772,7 @@ func (x *VaultItemChunk) String() string {
 func (*VaultItemChunk) ProtoMessage() {}
 
 func (x *VaultItemChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[11]
+	mi := &file_server_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -747,7 +785,7 @@ func (x *VaultItemChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VaultItemChunk.ProtoReflect.Descriptor instead.
 func (*VaultItemChunk) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{11}
+	return file_server_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *VaultItemChunk) GetItem() *VaultItem {
@@ -804,7 +842,7 @@ type StreamMetadata struct {
 
 func (x *StreamMetadata) Reset() {
 	*x = StreamMetadata{}
-	mi := &file_server_proto_msgTypes[12]
+	mi := &file_server_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -816,7 +854,7 @@ func (x *StreamMetadata) String() string {
 func (*StreamMetadata) ProtoMessage() {}
 
 func (x *StreamMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[12]
+	mi := &file_server_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -829,7 +867,7 @@ func (x *StreamMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamMetadata.ProtoReflect.Descriptor instead.
 func (*StreamMetadata) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{12}
+	return file_server_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StreamMetadata) GetTotalItems() int32 {
@@ -860,6 +898,42 @@ func (x *StreamMetadata) GetIsLastItem() bool {
 	return false
 }
 
+type StreamVaultsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamVaultsRequest) Reset() {
+	*x = StreamVaultsRequest{}
+	mi := &file_server_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamVaultsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamVaultsRequest) ProtoMessage() {}
+
+func (x *StreamVaultsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamVaultsRequest.ProtoReflect.Descriptor instead.
+func (*StreamVaultsRequest) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{15}
+}
+
 type StreamVaultsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Payload:
@@ -873,7 +947,7 @@ type StreamVaultsResponse struct {
 
 func (x *StreamVaultsResponse) Reset() {
 	*x = StreamVaultsResponse{}
-	mi := &file_server_proto_msgTypes[13]
+	mi := &file_server_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -885,7 +959,7 @@ func (x *StreamVaultsResponse) String() string {
 func (*StreamVaultsResponse) ProtoMessage() {}
 
 func (x *StreamVaultsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[13]
+	mi := &file_server_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -898,7 +972,7 @@ func (x *StreamVaultsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamVaultsResponse.ProtoReflect.Descriptor instead.
 func (*StreamVaultsResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{13}
+	return file_server_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *StreamVaultsResponse) GetPayload() isStreamVaultsResponse_Payload {
@@ -942,88 +1016,34 @@ func (*StreamVaultsResponse_ItemChunk) isStreamVaultsResponse_Payload() {}
 
 func (*StreamVaultsResponse_Metadata) isStreamVaultsResponse_Payload() {}
 
-type ChangePasswordRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	CurrentPassword string                 `protobuf:"bytes,1,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
-	NewPassword     string                 `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
-	Login           string                 `protobuf:"bytes,3,opt,name=login,proto3" json:"login,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ChangePasswordRequest) Reset() {
-	*x = ChangePasswordRequest{}
-	mi := &file_server_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ChangePasswordRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ChangePasswordRequest) ProtoMessage() {}
-
-func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
-func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *ChangePasswordRequest) GetCurrentPassword() string {
-	if x != nil {
-		return x.CurrentPassword
-	}
-	return ""
-}
-
-func (x *ChangePasswordRequest) GetNewPassword() string {
-	if x != nil {
-		return x.NewPassword
-	}
-	return ""
-}
-
-func (x *ChangePasswordRequest) GetLogin() string {
-	if x != nil {
-		return x.Login
-	}
-	return ""
-}
-
-type ChangePasswordResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+// Messages for uploading file data into the vault using chunks
+type UploadFileRequest struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	FileName string                 `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+	// Types that are valid to be assigned to Data:
+	//
+	//	*UploadFileRequest_ChunkData
+	//	*UploadFileRequest_MetaData
+	Data          isUploadFileRequest_Data `protobuf_oneof:"data"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ChangePasswordResponse) Reset() {
-	*x = ChangePasswordResponse{}
-	mi := &file_server_proto_msgTypes[15]
+func (x *UploadFileRequest) Reset() {
+	*x = UploadFileRequest{}
+	mi := &file_server_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ChangePasswordResponse) String() string {
+func (x *UploadFileRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ChangePasswordResponse) ProtoMessage() {}
+func (*UploadFileRequest) ProtoMessage() {}
 
-func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_msgTypes[15]
+func (x *UploadFileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1034,23 +1054,66 @@ func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ChangePasswordResponse.ProtoReflect.Descriptor instead.
-func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_rawDescGZIP(), []int{15}
+// Deprecated: Use UploadFileRequest.ProtoReflect.Descriptor instead.
+func (*UploadFileRequest) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *ChangePasswordResponse) GetSuccess() bool {
+func (x *UploadFileRequest) GetFileName() string {
 	if x != nil {
-		return x.Success
+		return x.FileName
 	}
-	return false
+	return ""
 }
+
+func (x *UploadFileRequest) GetData() isUploadFileRequest_Data {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *UploadFileRequest) GetChunkData() []byte {
+	if x != nil {
+		if x, ok := x.Data.(*UploadFileRequest_ChunkData); ok {
+			return x.ChunkData
+		}
+	}
+	return nil
+}
+
+func (x *UploadFileRequest) GetMetaData() *structpb.Struct {
+	if x != nil {
+		if x, ok := x.Data.(*UploadFileRequest_MetaData); ok {
+			return x.MetaData
+		}
+	}
+	return nil
+}
+
+type isUploadFileRequest_Data interface {
+	isUploadFileRequest_Data()
+}
+
+type UploadFileRequest_ChunkData struct {
+	ChunkData []byte `protobuf:"bytes,2,opt,name=chunk_data,json=chunkData,proto3,oneof"`
+}
+
+type UploadFileRequest_MetaData struct {
+	MetaData *structpb.Struct `protobuf:"bytes,3,opt,name=meta_data,json=metaData,proto3,oneof"`
+}
+
+func (*UploadFileRequest_ChunkData) isUploadFileRequest_Data() {}
+
+func (*UploadFileRequest_MetaData) isUploadFileRequest_Data() {}
 
 var File_server_proto protoreflect.FileDescriptor
 
 const file_server_proto_rawDesc = "" +
 	"\n" +
-	"\fserver.proto\x12\x06server\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\"G\n" +
+	"\fserver.proto\x12\x06server\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\"\r\n" +
+	"\vPingRequest\"\x0e\n" +
+	"\fPingResponse\"G\n" +
 	"\x13RegisterUserRequest\x12\x14\n" +
 	"\x05login\x18\x01 \x01(\tR\x05login\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"l\n" +
@@ -1064,13 +1127,23 @@ const file_server_proto_rawDesc = "" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"C\n" +
 	"\x11LoginUserResponse\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x18\n" +
-	"\asuccess\x18\x02 \x01(\bR\asuccess\"\x9e\x01\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\"{\n" +
+	"\x15ChangePasswordRequest\x12)\n" +
+	"\x10current_password\x18\x01 \x01(\tR\x0fcurrentPassword\x12!\n" +
+	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\x12\x14\n" +
+	"\x05login\x18\x03 \x01(\tR\x05login\"2\n" +
+	"\x16ChangePasswordResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x9e\x01\n" +
 	"\x10SaveVaultRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1b\n" +
 	"\tdata_type\x18\x02 \x01(\tR\bdataType\x12#\n" +
 	"\recrypted_data\x18\x03 \x01(\fR\fecryptedData\x124\n" +
 	"\tmeta_data\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetaData\"-\n" +
 	"\x11SaveVaultResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"5\n" +
+	"\x16DeactivateVaultRequest\x12\x1b\n" +
+	"\tsecret_id\x18\x01 \x01(\x05R\bsecretId\"3\n" +
+	"\x17DeactivateVaultResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xb2\x02\n" +
 	"\tVaultItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x17\n" +
@@ -1085,19 +1158,7 @@ const file_server_proto_rawDesc = "" +
 	"updated_at\x18\b \x01(\tR\tupdatedAt\x12\x16\n" +
 	"\x06active\x18\t \x01(\bR\x06active\x12\x18\n" +
 	"\aversion\x18\n" +
-	" \x01(\x05R\aversion\"B\n" +
-	"\x15GetUserVaultsResponse\x12)\n" +
-	"\x06vaults\x18\x01 \x03(\v2\x11.server.VaultItemR\x06vaults\"5\n" +
-	"\x16DeactivateVaultRequest\x12\x1b\n" +
-	"\tsecret_id\x18\x01 \x01(\x05R\bsecretId\"3\n" +
-	"\x17DeactivateVaultResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x91\x01\n" +
-	"\x11UploadFileRequest\x12\x1b\n" +
-	"\tfile_name\x18\x01 \x01(\tR\bfileName\x12\x1f\n" +
-	"\n" +
-	"chunk_data\x18\x02 \x01(\fH\x00R\tchunkData\x126\n" +
-	"\tmeta_data\x18\x03 \x01(\v2\x17.google.protobuf.StructH\x00R\bmetaDataB\x06\n" +
-	"\x04data\"\xf7\x01\n" +
+	" \x01(\x05R\aversion\"\xf7\x01\n" +
 	"\x0eVaultItemChunk\x12%\n" +
 	"\x04item\x18\x01 \x01(\v2\x11.server.VaultItemR\x04item\x120\n" +
 	"\x14encrypted_data_chunk\x18\x02 \x01(\fR\x12encryptedDataChunk\x12\x1f\n" +
@@ -1112,30 +1173,30 @@ const file_server_proto_rawDesc = "" +
 	"\x12current_item_index\x18\x02 \x01(\x05R\x10currentItemIndex\x12\"\n" +
 	"\ris_first_item\x18\x03 \x01(\bR\visFirstItem\x12 \n" +
 	"\fis_last_item\x18\x04 \x01(\bR\n" +
-	"isLastItem\"\x90\x01\n" +
+	"isLastItem\"\x15\n" +
+	"\x13StreamVaultsRequest\"\x90\x01\n" +
 	"\x14StreamVaultsResponse\x127\n" +
 	"\n" +
 	"item_chunk\x18\x01 \x01(\v2\x16.server.VaultItemChunkH\x00R\titemChunk\x124\n" +
 	"\bmetadata\x18\x02 \x01(\v2\x16.server.StreamMetadataH\x00R\bmetadataB\t\n" +
-	"\apayload\"{\n" +
-	"\x15ChangePasswordRequest\x12)\n" +
-	"\x10current_password\x18\x01 \x01(\tR\x0fcurrentPassword\x12!\n" +
-	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\x12\x14\n" +
-	"\x05login\x18\x03 \x01(\tR\x05login\"2\n" +
-	"\x16ChangePasswordResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\x86\x05\n" +
+	"\apayload\"\x91\x01\n" +
+	"\x11UploadFileRequest\x12\x1b\n" +
+	"\tfile_name\x18\x01 \x01(\tR\bfileName\x12\x1f\n" +
 	"\n" +
-	"GophKeeper\x126\n" +
-	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12I\n" +
+	"chunk_data\x18\x02 \x01(\fH\x00R\tchunkData\x126\n" +
+	"\tmeta_data\x18\x03 \x01(\v2\x17.google.protobuf.StructH\x00R\bmetaDataB\x06\n" +
+	"\x04data2\xc2\x04\n" +
+	"\n" +
+	"GophKeeper\x121\n" +
+	"\x04Ping\x12\x13.server.PingRequest\x1a\x14.server.PingResponse\x12I\n" +
 	"\fRegisterUser\x12\x1b.server.RegisterUserRequest\x1a\x1c.server.RegisterUserResponse\x12@\n" +
-	"\tLoginUser\x12\x18.server.LoginUserRequest\x1a\x19.server.LoginUserResponse\x12@\n" +
-	"\tSaveVault\x12\x18.server.SaveVaultRequest\x1a\x19.server.SaveVaultResponse\x12B\n" +
-	"\tGetVaults\x12\x16.google.protobuf.Empty\x1a\x1d.server.GetUserVaultsResponse\x12R\n" +
+	"\tLoginUser\x12\x18.server.LoginUserRequest\x1a\x19.server.LoginUserResponse\x12O\n" +
+	"\x0eChangePassword\x12\x1d.server.ChangePasswordRequest\x1a\x1e.server.ChangePasswordResponse\x12@\n" +
+	"\tSaveVault\x12\x18.server.SaveVaultRequest\x1a\x19.server.SaveVaultResponse\x12R\n" +
 	"\x0fDeactivateVault\x12\x1e.server.DeactivateVaultRequest\x1a\x1f.server.DeactivateVaultResponse\x12<\n" +
 	"\n" +
-	"UploadFile\x12\x19.server.UploadFileRequest\x1a\x11.server.VaultItem(\x01\x12J\n" +
-	"\x10GetSteamedVaults\x12\x16.google.protobuf.Empty\x1a\x1c.server.StreamVaultsResponse0\x01\x12O\n" +
-	"\x0eChangePassword\x12\x1d.server.ChangePasswordRequest\x1a\x1e.server.ChangePasswordResponseB\x17Z\x15internal/server/protob\x06proto3"
+	"UploadFile\x12\x19.server.UploadFileRequest\x1a\x11.server.VaultItem(\x01\x12O\n" +
+	"\x10GetSteamedVaults\x12\x1b.server.StreamVaultsRequest\x1a\x1c.server.StreamVaultsResponse0\x01B\x17Z\x15internal/server/protob\x06proto3"
 
 var (
 	file_server_proto_rawDescOnce sync.Once
@@ -1149,58 +1210,56 @@ func file_server_proto_rawDescGZIP() []byte {
 	return file_server_proto_rawDescData
 }
 
-var file_server_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_server_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_server_proto_goTypes = []any{
-	(*RegisterUserRequest)(nil),     // 0: server.RegisterUserRequest
-	(*RegisterUserResponse)(nil),    // 1: server.RegisterUserResponse
-	(*LoginUserRequest)(nil),        // 2: server.LoginUserRequest
-	(*LoginUserResponse)(nil),       // 3: server.LoginUserResponse
-	(*SaveVaultRequest)(nil),        // 4: server.SaveVaultRequest
-	(*SaveVaultResponse)(nil),       // 5: server.SaveVaultResponse
-	(*VaultItem)(nil),               // 6: server.VaultItem
-	(*GetUserVaultsResponse)(nil),   // 7: server.GetUserVaultsResponse
-	(*DeactivateVaultRequest)(nil),  // 8: server.DeactivateVaultRequest
-	(*DeactivateVaultResponse)(nil), // 9: server.DeactivateVaultResponse
-	(*UploadFileRequest)(nil),       // 10: server.UploadFileRequest
-	(*VaultItemChunk)(nil),          // 11: server.VaultItemChunk
-	(*StreamMetadata)(nil),          // 12: server.StreamMetadata
-	(*StreamVaultsResponse)(nil),    // 13: server.StreamVaultsResponse
-	(*ChangePasswordRequest)(nil),   // 14: server.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil),  // 15: server.ChangePasswordResponse
-	(*structpb.Struct)(nil),         // 16: google.protobuf.Struct
-	(*emptypb.Empty)(nil),           // 17: google.protobuf.Empty
+	(*PingRequest)(nil),             // 0: server.PingRequest
+	(*PingResponse)(nil),            // 1: server.PingResponse
+	(*RegisterUserRequest)(nil),     // 2: server.RegisterUserRequest
+	(*RegisterUserResponse)(nil),    // 3: server.RegisterUserResponse
+	(*LoginUserRequest)(nil),        // 4: server.LoginUserRequest
+	(*LoginUserResponse)(nil),       // 5: server.LoginUserResponse
+	(*ChangePasswordRequest)(nil),   // 6: server.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),  // 7: server.ChangePasswordResponse
+	(*SaveVaultRequest)(nil),        // 8: server.SaveVaultRequest
+	(*SaveVaultResponse)(nil),       // 9: server.SaveVaultResponse
+	(*DeactivateVaultRequest)(nil),  // 10: server.DeactivateVaultRequest
+	(*DeactivateVaultResponse)(nil), // 11: server.DeactivateVaultResponse
+	(*VaultItem)(nil),               // 12: server.VaultItem
+	(*VaultItemChunk)(nil),          // 13: server.VaultItemChunk
+	(*StreamMetadata)(nil),          // 14: server.StreamMetadata
+	(*StreamVaultsRequest)(nil),     // 15: server.StreamVaultsRequest
+	(*StreamVaultsResponse)(nil),    // 16: server.StreamVaultsResponse
+	(*UploadFileRequest)(nil),       // 17: server.UploadFileRequest
+	(*structpb.Struct)(nil),         // 18: google.protobuf.Struct
 }
 var file_server_proto_depIdxs = []int32{
-	16, // 0: server.SaveVaultRequest.meta_data:type_name -> google.protobuf.Struct
-	16, // 1: server.VaultItem.meta_data:type_name -> google.protobuf.Struct
-	6,  // 2: server.GetUserVaultsResponse.vaults:type_name -> server.VaultItem
-	16, // 3: server.UploadFileRequest.meta_data:type_name -> google.protobuf.Struct
-	6,  // 4: server.VaultItemChunk.item:type_name -> server.VaultItem
-	11, // 5: server.StreamVaultsResponse.item_chunk:type_name -> server.VaultItemChunk
-	12, // 6: server.StreamVaultsResponse.metadata:type_name -> server.StreamMetadata
-	17, // 7: server.GophKeeper.Ping:input_type -> google.protobuf.Empty
-	0,  // 8: server.GophKeeper.RegisterUser:input_type -> server.RegisterUserRequest
-	2,  // 9: server.GophKeeper.LoginUser:input_type -> server.LoginUserRequest
-	4,  // 10: server.GophKeeper.SaveVault:input_type -> server.SaveVaultRequest
-	17, // 11: server.GophKeeper.GetVaults:input_type -> google.protobuf.Empty
-	8,  // 12: server.GophKeeper.DeactivateVault:input_type -> server.DeactivateVaultRequest
-	10, // 13: server.GophKeeper.UploadFile:input_type -> server.UploadFileRequest
-	17, // 14: server.GophKeeper.GetSteamedVaults:input_type -> google.protobuf.Empty
-	14, // 15: server.GophKeeper.ChangePassword:input_type -> server.ChangePasswordRequest
-	17, // 16: server.GophKeeper.Ping:output_type -> google.protobuf.Empty
-	1,  // 17: server.GophKeeper.RegisterUser:output_type -> server.RegisterUserResponse
-	3,  // 18: server.GophKeeper.LoginUser:output_type -> server.LoginUserResponse
-	5,  // 19: server.GophKeeper.SaveVault:output_type -> server.SaveVaultResponse
-	7,  // 20: server.GophKeeper.GetVaults:output_type -> server.GetUserVaultsResponse
-	9,  // 21: server.GophKeeper.DeactivateVault:output_type -> server.DeactivateVaultResponse
-	6,  // 22: server.GophKeeper.UploadFile:output_type -> server.VaultItem
-	13, // 23: server.GophKeeper.GetSteamedVaults:output_type -> server.StreamVaultsResponse
-	15, // 24: server.GophKeeper.ChangePassword:output_type -> server.ChangePasswordResponse
-	16, // [16:25] is the sub-list for method output_type
-	7,  // [7:16] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	18, // 0: server.SaveVaultRequest.meta_data:type_name -> google.protobuf.Struct
+	18, // 1: server.VaultItem.meta_data:type_name -> google.protobuf.Struct
+	12, // 2: server.VaultItemChunk.item:type_name -> server.VaultItem
+	13, // 3: server.StreamVaultsResponse.item_chunk:type_name -> server.VaultItemChunk
+	14, // 4: server.StreamVaultsResponse.metadata:type_name -> server.StreamMetadata
+	18, // 5: server.UploadFileRequest.meta_data:type_name -> google.protobuf.Struct
+	0,  // 6: server.GophKeeper.Ping:input_type -> server.PingRequest
+	2,  // 7: server.GophKeeper.RegisterUser:input_type -> server.RegisterUserRequest
+	4,  // 8: server.GophKeeper.LoginUser:input_type -> server.LoginUserRequest
+	6,  // 9: server.GophKeeper.ChangePassword:input_type -> server.ChangePasswordRequest
+	8,  // 10: server.GophKeeper.SaveVault:input_type -> server.SaveVaultRequest
+	10, // 11: server.GophKeeper.DeactivateVault:input_type -> server.DeactivateVaultRequest
+	17, // 12: server.GophKeeper.UploadFile:input_type -> server.UploadFileRequest
+	15, // 13: server.GophKeeper.GetSteamedVaults:input_type -> server.StreamVaultsRequest
+	1,  // 14: server.GophKeeper.Ping:output_type -> server.PingResponse
+	3,  // 15: server.GophKeeper.RegisterUser:output_type -> server.RegisterUserResponse
+	5,  // 16: server.GophKeeper.LoginUser:output_type -> server.LoginUserResponse
+	7,  // 17: server.GophKeeper.ChangePassword:output_type -> server.ChangePasswordResponse
+	9,  // 18: server.GophKeeper.SaveVault:output_type -> server.SaveVaultResponse
+	11, // 19: server.GophKeeper.DeactivateVault:output_type -> server.DeactivateVaultResponse
+	12, // 20: server.GophKeeper.UploadFile:output_type -> server.VaultItem
+	16, // 21: server.GophKeeper.GetSteamedVaults:output_type -> server.StreamVaultsResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_server_proto_init() }
@@ -1208,13 +1267,13 @@ func file_server_proto_init() {
 	if File_server_proto != nil {
 		return
 	}
-	file_server_proto_msgTypes[10].OneofWrappers = []any{
-		(*UploadFileRequest_ChunkData)(nil),
-		(*UploadFileRequest_MetaData)(nil),
-	}
-	file_server_proto_msgTypes[13].OneofWrappers = []any{
+	file_server_proto_msgTypes[16].OneofWrappers = []any{
 		(*StreamVaultsResponse_ItemChunk)(nil),
 		(*StreamVaultsResponse_Metadata)(nil),
+	}
+	file_server_proto_msgTypes[17].OneofWrappers = []any{
+		(*UploadFileRequest_ChunkData)(nil),
+		(*UploadFileRequest_MetaData)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1222,7 +1281,7 @@ func file_server_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_server_proto_rawDesc), len(file_server_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

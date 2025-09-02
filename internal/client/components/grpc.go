@@ -13,13 +13,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/dangerousmonk/gophkeeper/internal/client/messages"
 	"github.com/dangerousmonk/gophkeeper/internal/encryption"
+	"github.com/dangerousmonk/gophkeeper/internal/files"
 	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
 )
 
 func contextWithToken(token string, ctx context.Context) context.Context {
@@ -129,7 +128,7 @@ func saveVault(
 					Success: false,
 				}
 			}
-			metaData, err := utils.GetFileMetadata(fPath)
+			metaData, err := files.GetFileMetadata(fPath)
 			if err != nil {
 				return messages.SaveVaultResultMsg{
 					Err:     fmt.Errorf("failed to read file metadata %w", err),
@@ -308,7 +307,7 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 		slog.Info("GetVaultsStream:started")
 		ctx = contextWithToken(token, ctx)
 
-		stream, err := client.GetSteamedVaults(ctx, &emptypb.Empty{})
+		stream, err := client.GetSteamedVaults(ctx, &proto.StreamVaultsRequest{})
 		if err != nil {
 			return messages.GetVaultsResultMsg{
 				Err:    fmt.Errorf("failed to create stream: %v", err),
@@ -352,7 +351,7 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 
 				// If we have a completed item from previous metadata, add it to results
 				if currentItem != nil && len(currentChunks) > 0 {
-					reconstructed := utils.MergeChunks(currentChunks)
+					reconstructed := files.MergeChunks(currentChunks)
 					currentItem.ReconstructedData = reconstructed
 					collectedItems = append(collectedItems, currentItem)
 					currentChunks = nil
@@ -380,7 +379,7 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 				// If this is the last chunk and we have metadata indicating last item,
 				// process the completed item immediately
 				if chunk.IsLastChunk && currentMeta != nil && currentMeta.IsLastItem {
-					reconstructed := utils.MergeChunks(currentChunks)
+					reconstructed := files.MergeChunks(currentChunks)
 					currentItem.ReconstructedData = reconstructed
 					collectedItems = append(collectedItems, currentItem)
 					currentChunks = nil

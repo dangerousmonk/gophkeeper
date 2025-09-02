@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -23,12 +22,11 @@ const (
 	GophKeeper_Ping_FullMethodName             = "/server.GophKeeper/Ping"
 	GophKeeper_RegisterUser_FullMethodName     = "/server.GophKeeper/RegisterUser"
 	GophKeeper_LoginUser_FullMethodName        = "/server.GophKeeper/LoginUser"
+	GophKeeper_ChangePassword_FullMethodName   = "/server.GophKeeper/ChangePassword"
 	GophKeeper_SaveVault_FullMethodName        = "/server.GophKeeper/SaveVault"
-	GophKeeper_GetVaults_FullMethodName        = "/server.GophKeeper/GetVaults"
 	GophKeeper_DeactivateVault_FullMethodName  = "/server.GophKeeper/DeactivateVault"
 	GophKeeper_UploadFile_FullMethodName       = "/server.GophKeeper/UploadFile"
 	GophKeeper_GetSteamedVaults_FullMethodName = "/server.GophKeeper/GetSteamedVaults"
-	GophKeeper_ChangePassword_FullMethodName   = "/server.GophKeeper/ChangePassword"
 )
 
 // GophKeeperClient is the client API for GophKeeper service.
@@ -36,22 +34,21 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GophKeeperClient interface {
 	// Service health
-	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	// Register new user
 	RegisterUser(ctx context.Context, in *RegisterUserRequest, opts ...grpc.CallOption) (*RegisterUserResponse, error)
 	// Login user
 	LoginUser(ctx context.Context, in *LoginUserRequest, opts ...grpc.CallOption) (*LoginUserResponse, error)
+	// Change user password
+	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
 	// SaveVault saves new record to vault
 	SaveVault(ctx context.Context, in *SaveVaultRequest, opts ...grpc.CallOption) (*SaveVaultResponse, error)
-	// Retrieves all vaults saved by user
-	GetVaults(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetUserVaultsResponse, error)
 	// Login user
 	DeactivateVault(ctx context.Context, in *DeactivateVaultRequest, opts ...grpc.CallOption) (*DeactivateVaultResponse, error)
 	// UploadFile is used to send binary data as stream of chunks
 	UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadFileRequest, VaultItem], error)
 	// Retrieve all vaults saved by user using streamed response
-	GetSteamedVaults(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamVaultsResponse], error)
-	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
+	GetSteamedVaults(ctx context.Context, in *StreamVaultsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamVaultsResponse], error)
 }
 
 type gophKeeperClient struct {
@@ -62,9 +59,9 @@ func NewGophKeeperClient(cc grpc.ClientConnInterface) GophKeeperClient {
 	return &gophKeeperClient{cc}
 }
 
-func (c *gophKeeperClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *gophKeeperClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
+	out := new(PingResponse)
 	err := c.cc.Invoke(ctx, GophKeeper_Ping_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -92,20 +89,20 @@ func (c *gophKeeperClient) LoginUser(ctx context.Context, in *LoginUserRequest, 
 	return out, nil
 }
 
-func (c *gophKeeperClient) SaveVault(ctx context.Context, in *SaveVaultRequest, opts ...grpc.CallOption) (*SaveVaultResponse, error) {
+func (c *gophKeeperClient) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SaveVaultResponse)
-	err := c.cc.Invoke(ctx, GophKeeper_SaveVault_FullMethodName, in, out, cOpts...)
+	out := new(ChangePasswordResponse)
+	err := c.cc.Invoke(ctx, GophKeeper_ChangePassword_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *gophKeeperClient) GetVaults(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetUserVaultsResponse, error) {
+func (c *gophKeeperClient) SaveVault(ctx context.Context, in *SaveVaultRequest, opts ...grpc.CallOption) (*SaveVaultResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetUserVaultsResponse)
-	err := c.cc.Invoke(ctx, GophKeeper_GetVaults_FullMethodName, in, out, cOpts...)
+	out := new(SaveVaultResponse)
+	err := c.cc.Invoke(ctx, GophKeeper_SaveVault_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +132,13 @@ func (c *gophKeeperClient) UploadFile(ctx context.Context, opts ...grpc.CallOpti
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GophKeeper_UploadFileClient = grpc.ClientStreamingClient[UploadFileRequest, VaultItem]
 
-func (c *gophKeeperClient) GetSteamedVaults(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamVaultsResponse], error) {
+func (c *gophKeeperClient) GetSteamedVaults(ctx context.Context, in *StreamVaultsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamVaultsResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &GophKeeper_ServiceDesc.Streams[1], GophKeeper_GetSteamedVaults_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[emptypb.Empty, StreamVaultsResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[StreamVaultsRequest, StreamVaultsResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -154,37 +151,26 @@ func (c *gophKeeperClient) GetSteamedVaults(ctx context.Context, in *emptypb.Emp
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GophKeeper_GetSteamedVaultsClient = grpc.ServerStreamingClient[StreamVaultsResponse]
 
-func (c *gophKeeperClient) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ChangePasswordResponse)
-	err := c.cc.Invoke(ctx, GophKeeper_ChangePassword_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // GophKeeperServer is the server API for GophKeeper service.
 // All implementations must embed UnimplementedGophKeeperServer
 // for forward compatibility.
 type GophKeeperServer interface {
 	// Service health
-	Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	// Register new user
 	RegisterUser(context.Context, *RegisterUserRequest) (*RegisterUserResponse, error)
 	// Login user
 	LoginUser(context.Context, *LoginUserRequest) (*LoginUserResponse, error)
+	// Change user password
+	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	// SaveVault saves new record to vault
 	SaveVault(context.Context, *SaveVaultRequest) (*SaveVaultResponse, error)
-	// Retrieves all vaults saved by user
-	GetVaults(context.Context, *emptypb.Empty) (*GetUserVaultsResponse, error)
 	// Login user
 	DeactivateVault(context.Context, *DeactivateVaultRequest) (*DeactivateVaultResponse, error)
 	// UploadFile is used to send binary data as stream of chunks
 	UploadFile(grpc.ClientStreamingServer[UploadFileRequest, VaultItem]) error
 	// Retrieve all vaults saved by user using streamed response
-	GetSteamedVaults(*emptypb.Empty, grpc.ServerStreamingServer[StreamVaultsResponse]) error
-	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
+	GetSteamedVaults(*StreamVaultsRequest, grpc.ServerStreamingServer[StreamVaultsResponse]) error
 	mustEmbedUnimplementedGophKeeperServer()
 }
 
@@ -195,7 +181,7 @@ type GophKeeperServer interface {
 // pointer dereference when methods are called.
 type UnimplementedGophKeeperServer struct{}
 
-func (UnimplementedGophKeeperServer) Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+func (UnimplementedGophKeeperServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
 func (UnimplementedGophKeeperServer) RegisterUser(context.Context, *RegisterUserRequest) (*RegisterUserResponse, error) {
@@ -204,11 +190,11 @@ func (UnimplementedGophKeeperServer) RegisterUser(context.Context, *RegisterUser
 func (UnimplementedGophKeeperServer) LoginUser(context.Context, *LoginUserRequest) (*LoginUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoginUser not implemented")
 }
+func (UnimplementedGophKeeperServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
+}
 func (UnimplementedGophKeeperServer) SaveVault(context.Context, *SaveVaultRequest) (*SaveVaultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SaveVault not implemented")
-}
-func (UnimplementedGophKeeperServer) GetVaults(context.Context, *emptypb.Empty) (*GetUserVaultsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetVaults not implemented")
 }
 func (UnimplementedGophKeeperServer) DeactivateVault(context.Context, *DeactivateVaultRequest) (*DeactivateVaultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeactivateVault not implemented")
@@ -216,11 +202,8 @@ func (UnimplementedGophKeeperServer) DeactivateVault(context.Context, *Deactivat
 func (UnimplementedGophKeeperServer) UploadFile(grpc.ClientStreamingServer[UploadFileRequest, VaultItem]) error {
 	return status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
 }
-func (UnimplementedGophKeeperServer) GetSteamedVaults(*emptypb.Empty, grpc.ServerStreamingServer[StreamVaultsResponse]) error {
+func (UnimplementedGophKeeperServer) GetSteamedVaults(*StreamVaultsRequest, grpc.ServerStreamingServer[StreamVaultsResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method GetSteamedVaults not implemented")
-}
-func (UnimplementedGophKeeperServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
 }
 func (UnimplementedGophKeeperServer) mustEmbedUnimplementedGophKeeperServer() {}
 func (UnimplementedGophKeeperServer) testEmbeddedByValue()                    {}
@@ -244,7 +227,7 @@ func RegisterGophKeeperServer(s grpc.ServiceRegistrar, srv GophKeeperServer) {
 }
 
 func _GophKeeper_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(PingRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -256,7 +239,7 @@ func _GophKeeper_Ping_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: GophKeeper_Ping_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).Ping(ctx, req.(*emptypb.Empty))
+		return srv.(GophKeeperServer).Ping(ctx, req.(*PingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -297,6 +280,24 @@ func _GophKeeper_LoginUser_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GophKeeper_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangePasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServer).ChangePassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GophKeeper_ChangePassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GophKeeper_SaveVault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SaveVaultRequest)
 	if err := dec(in); err != nil {
@@ -311,24 +312,6 @@ func _GophKeeper_SaveVault_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GophKeeperServer).SaveVault(ctx, req.(*SaveVaultRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GophKeeper_GetVaults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GophKeeperServer).GetVaults(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GophKeeper_GetVaults_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).GetVaults(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -359,33 +342,15 @@ func _GophKeeper_UploadFile_Handler(srv interface{}, stream grpc.ServerStream) e
 type GophKeeper_UploadFileServer = grpc.ClientStreamingServer[UploadFileRequest, VaultItem]
 
 func _GophKeeper_GetSteamedVaults_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
+	m := new(StreamVaultsRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GophKeeperServer).GetSteamedVaults(m, &grpc.GenericServerStream[emptypb.Empty, StreamVaultsResponse]{ServerStream: stream})
+	return srv.(GophKeeperServer).GetSteamedVaults(m, &grpc.GenericServerStream[StreamVaultsRequest, StreamVaultsResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GophKeeper_GetSteamedVaultsServer = grpc.ServerStreamingServer[StreamVaultsResponse]
-
-func _GophKeeper_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChangePasswordRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GophKeeperServer).ChangePassword(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GophKeeper_ChangePassword_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
 
 // GophKeeper_ServiceDesc is the grpc.ServiceDesc for GophKeeper service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -407,20 +372,16 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GophKeeper_LoginUser_Handler,
 		},
 		{
+			MethodName: "ChangePassword",
+			Handler:    _GophKeeper_ChangePassword_Handler,
+		},
+		{
 			MethodName: "SaveVault",
 			Handler:    _GophKeeper_SaveVault_Handler,
 		},
 		{
-			MethodName: "GetVaults",
-			Handler:    _GophKeeper_GetVaults_Handler,
-		},
-		{
 			MethodName: "DeactivateVault",
 			Handler:    _GophKeeper_DeactivateVault_Handler,
-		},
-		{
-			MethodName: "ChangePassword",
-			Handler:    _GophKeeper_ChangePassword_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

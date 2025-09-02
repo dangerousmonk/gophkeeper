@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
+	"github.com/dangerousmonk/gophkeeper/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -24,14 +24,14 @@ var (
 )
 
 type mockAuthenticator struct {
-	validateTokenFunc func(token string) (*utils.Claims, error)
+	validateTokenFunc func(token string) (*auth.Claims, error)
 }
 
 func (m *mockAuthenticator) CreateToken(userID int, duration time.Duration) (string, error) {
 	return "", nil
 }
 
-func (m *mockAuthenticator) ValidateToken(token string) (*utils.Claims, error) {
+func (m *mockAuthenticator) ValidateToken(token string) (*auth.Claims, error) {
 	return m.validateTokenFunc(token)
 }
 
@@ -64,7 +64,7 @@ func (m *mockServerStream) SetTrailer(metadata.MD) {
 
 func TestAuthUnaryInterceptor(t *testing.T) {
 	validToken := "valid.token.here"
-	validClaims := &utils.Claims{UserID: 123}
+	validClaims := &auth.Claims{UserID: 123}
 
 	tests := []struct {
 		name         string
@@ -128,7 +128,7 @@ func TestAuthUnaryInterceptor(t *testing.T) {
 				return metadata.NewIncomingContext(context.Background(), md)
 			},
 			mockAuth: &mockAuthenticator{
-				validateTokenFunc: func(token string) (*utils.Claims, error) {
+				validateTokenFunc: func(token string) (*auth.Claims, error) {
 					return nil, errors.New("invalid token")
 				},
 			},
@@ -145,7 +145,7 @@ func TestAuthUnaryInterceptor(t *testing.T) {
 				return metadata.NewIncomingContext(context.Background(), md)
 			},
 			mockAuth: &mockAuthenticator{
-				validateTokenFunc: func(token string) (*utils.Claims, error) {
+				validateTokenFunc: func(token string) (*auth.Claims, error) {
 					if token == validToken {
 						return validClaims, nil
 					}
@@ -165,8 +165,8 @@ func TestAuthUnaryInterceptor(t *testing.T) {
 				return metadata.NewIncomingContext(context.Background(), md)
 			},
 			mockAuth: &mockAuthenticator{
-				validateTokenFunc: func(token string) (*utils.Claims, error) {
-					return nil, utils.ErrExpiredToken
+				validateTokenFunc: func(token string) (*auth.Claims, error) {
+					return nil, auth.ErrExpiredToken
 				},
 			},
 			wantUserID: nil,
@@ -295,8 +295,8 @@ func TestAuthenticate(t *testing.T) {
 			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer valid-token")),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*utils.Claims, error) {
-						return &utils.Claims{UserID: 123}, nil
+					validateTokenFunc: func(token string) (*auth.Claims, error) {
+						return &auth.Claims{UserID: 123}, nil
 					},
 				}
 			},
@@ -344,7 +344,7 @@ func TestAuthenticate(t *testing.T) {
 			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer invalid-token")),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*utils.Claims, error) {
+					validateTokenFunc: func(token string) (*auth.Claims, error) {
 						return nil, status.Error(codes.Unauthenticated, "invalid token")
 					},
 				}
@@ -360,8 +360,8 @@ func TestAuthenticate(t *testing.T) {
 			)),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*utils.Claims, error) {
-						return &utils.Claims{UserID: 456}, nil
+					validateTokenFunc: func(token string) (*auth.Claims, error) {
+						return &auth.Claims{UserID: 456}, nil
 					},
 				}
 			},
@@ -410,8 +410,8 @@ func TestStreamAuthInterceptor(t *testing.T) {
 			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer valid-token")),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*utils.Claims, error) {
-						return &utils.Claims{UserID: 123}, nil
+					validateTokenFunc: func(token string) (*auth.Claims, error) {
+						return &auth.Claims{UserID: 123}, nil
 					},
 				}
 			},
@@ -431,7 +431,7 @@ func TestStreamAuthInterceptor(t *testing.T) {
 			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer invalid-token")),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*utils.Claims, error) {
+					validateTokenFunc: func(token string) (*auth.Claims, error) {
 						return nil, status.Error(codes.Unauthenticated, "invalid token")
 					},
 				}

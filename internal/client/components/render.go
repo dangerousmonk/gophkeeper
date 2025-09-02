@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dangerousmonk/gophkeeper/internal/dates"
+	"github.com/dangerousmonk/gophkeeper/internal/files"
 	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
+	str "github.com/dangerousmonk/gophkeeper/internal/strings"
 	"github.com/dangerousmonk/gophkeeper/internal/version"
 )
 
@@ -443,10 +445,10 @@ func (m *Model) renderSecretsListView() string {
 			icon := getIcon(vault.DataType)
 			displayText := fmt.Sprintf("%s %s | %s | %s %s",
 				icon,
-				utils.TruncateString(vault.Name, 18),
+				str.TruncateString(vault.Name, 18),
 				vault.DataType,
 				timeIcon,
-				utils.FormatDate(vault.CreatedAt),
+				dates.FormatDate(vault.CreatedAt),
 			)
 
 			b.WriteString(secretStyle.Render(displayText) + "\n")
@@ -515,7 +517,7 @@ func renderFileDetails(vault *proto.VaultItem) string {
 
 	fileContent := fmt.Sprintf("%s File Name: %s\n", fileIcon, fileName)
 	fileContent += fmt.Sprintf("%s File Type: %s\n", folderIcon, fileType)
-	fileContent += fmt.Sprintf("%s File Size: %s\n", storageIcon, utils.FormatFileSize(fileSize))
+	fileContent += fmt.Sprintf("%s File Size: %s\n", storageIcon, files.FormatFileSize(fileSize))
 	fileContent += fmt.Sprintf("%s Original Path: %s\n", locationIcon, filePath)
 	fileContent += fmt.Sprintf("%s Storage: Encrypted binary data", lockIcon)
 	b.WriteString(fileStyle.Render(fileContent))
@@ -548,8 +550,8 @@ func (m Model) renderSecretDetailView() string {
 	infoContent := fmt.Sprintf("%s Name: %s\n", folderIcon, vault.Name)
 	infoContent += fmt.Sprintf("%s Type: %s\n", lockIcon, vault.DataType)
 	infoContent += fmt.Sprintf("%s ID: %d\n", idIcon, vault.Id)
-	infoContent += fmt.Sprintf("%s Created: %s\n", timeIcon, utils.FormatDate(vault.CreatedAt))
-	infoContent += fmt.Sprintf("%s Updated: %s\n", calendarIcon, utils.FormatDate(vault.UpdatedAt))
+	infoContent += fmt.Sprintf("%s Created: %s\n", timeIcon, dates.FormatDate(vault.CreatedAt))
+	infoContent += fmt.Sprintf("%s Updated: %s\n", calendarIcon, dates.FormatDate(vault.UpdatedAt))
 	infoContent += fmt.Sprintf("%s Active: %v\n", checkMarkIcon, vault.Active)
 	infoContent += fmt.Sprintf("%s Version: %d", versionIcon, vault.Version)
 

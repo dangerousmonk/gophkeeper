@@ -9,8 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dangerousmonk/gophkeeper/internal/client/components"
 	"github.com/dangerousmonk/gophkeeper/internal/config"
+	"github.com/dangerousmonk/gophkeeper/internal/logger"
 	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -27,7 +27,7 @@ func main() {
 	}
 	defer f.Close()
 
-	logger := utils.InitLogger(cfg.Environment, f)
+	logger := logger.InitLogger(cfg.Environment, f)
 	slog.SetDefault(logger)
 
 	serverAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)

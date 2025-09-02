@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
+	"github.com/dangerousmonk/gophkeeper/internal/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -39,7 +39,7 @@ func IsPublicMethod(fullMethod string) bool {
 }
 
 // AuthUnaryInterceptor reads JWT token from metadata and validates it.
-func AuthUnaryInterceptor(jwtManager utils.Authenticator) grpc.UnaryServerInterceptor {
+func AuthUnaryInterceptor(jwtManager auth.Authenticator) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -105,7 +105,7 @@ func (s *wrappedServerStream) Context() context.Context {
 }
 
 // StreamAuthInterceptor is uses to check user token for for streaming RPCs
-func StreamAuthInterceptor(jwtManager utils.Authenticator) grpc.StreamServerInterceptor {
+func StreamAuthInterceptor(jwtManager auth.Authenticator) grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := ss.Context()
 		userID, err := authenticate(ctx, jwtManager)
@@ -123,7 +123,7 @@ func StreamAuthInterceptor(jwtManager utils.Authenticator) grpc.StreamServerInte
 }
 
 // authenticate extracts and validates token from gRPC metadata
-func authenticate(ctx context.Context, jwtManager utils.Authenticator) (int, error) {
+func authenticate(ctx context.Context, jwtManager auth.Authenticator) (int, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return -1, status.Errorf(codes.Unauthenticated, "missing metadata")

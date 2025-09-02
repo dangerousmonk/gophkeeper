@@ -42,9 +42,9 @@ build-client:
 	mkdir -p $(BIN_DIR)
 	cd cmd/client && go build \
 		-ldflags="\
-		-X 'github.com/dangerousmonk/gophkeeper/internal/version.BuildDate=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")' \
-		-X 'github.com/dangerousmonk/gophkeeper/internal/version.GitCommit=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")' \
-		-X 'github.com/dangerousmonk/gophkeeper/internal/version.GoVersion=$(shell go version | cut -d" " -f3)'" \
+		-X 'github.com/dangerousmonk/gophkeeper/internal/version.buildDate=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")' \
+		-X 'github.com/dangerousmonk/gophkeeper/internal/version.gitCommit=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")' \
+		-X 'github.com/dangerousmonk/gophkeeper/internal/version.goVersion=$(shell go version | cut -d" " -f3)'" \
 		-o ../../$(BIN_DIR)/client
 	@echo "Client built: $(BIN_DIR)/client"
 
