@@ -19,15 +19,13 @@ type testCtxKey struct {
 	name string
 }
 
-var (
-	userIDTestKey = &testCtxKey{"otherKey"}
-)
+var userIDTestKey = &testCtxKey{"otherKey"}
 
 type mockAuthenticator struct {
 	validateTokenFunc func(token string) (*auth.Claims, error)
 }
 
-func (m *mockAuthenticator) CreateToken(userID int, duration time.Duration) (string, error) {
+func (m *mockAuthenticator) CreateToken(_ int, _ time.Duration) (string, error) {
 	return "", nil
 }
 
@@ -62,6 +60,7 @@ func (m *mockServerStream) SendHeader(metadata.MD) error {
 func (m *mockServerStream) SetTrailer(metadata.MD) {
 }
 
+//nolint:gocritic // test requires context setup as func
 func TestAuthUnaryInterceptor(t *testing.T) {
 	validToken := "valid.token.here"
 	validClaims := &auth.Claims{UserID: 123}
@@ -128,7 +127,7 @@ func TestAuthUnaryInterceptor(t *testing.T) {
 				return metadata.NewIncomingContext(context.Background(), md)
 			},
 			mockAuth: &mockAuthenticator{
-				validateTokenFunc: func(token string) (*auth.Claims, error) {
+				validateTokenFunc: func(_ string) (*auth.Claims, error) {
 					return nil, errors.New("invalid token")
 				},
 			},
@@ -165,7 +164,7 @@ func TestAuthUnaryInterceptor(t *testing.T) {
 				return metadata.NewIncomingContext(context.Background(), md)
 			},
 			mockAuth: &mockAuthenticator{
-				validateTokenFunc: func(token string) (*auth.Claims, error) {
+				validateTokenFunc: func(_ string) (*auth.Claims, error) {
 					return nil, auth.ErrExpiredToken
 				},
 			},
@@ -178,12 +177,13 @@ func TestAuthUnaryInterceptor(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			interceptor := AuthUnaryInterceptor(tt.mockAuth)
 
-			handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+			handler := func(ctx context.Context, _ interface{}) (interface{}, error) {
 				// Verify userID was set in context if expected
 				if tt.wantUserID != nil {
 					userID := ctx.Value(userIDContextKey)
 					assert.Equal(t, tt.wantUserID, userID)
 				}
+
 				return "response", nil
 			}
 
@@ -295,7 +295,7 @@ func TestAuthenticate(t *testing.T) {
 			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer valid-token")),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*auth.Claims, error) {
+					validateTokenFunc: func(_ string) (*auth.Claims, error) {
 						return &auth.Claims{UserID: 123}, nil
 					},
 				}
@@ -344,7 +344,7 @@ func TestAuthenticate(t *testing.T) {
 			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer invalid-token")),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*auth.Claims, error) {
+					validateTokenFunc: func(_ string) (*auth.Claims, error) {
 						return nil, status.Error(codes.Unauthenticated, "invalid token")
 					},
 				}
@@ -360,7 +360,7 @@ func TestAuthenticate(t *testing.T) {
 			)),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*auth.Claims, error) {
+					validateTokenFunc: func(_ string) (*auth.Claims, error) {
 						return &auth.Claims{UserID: 456}, nil
 					},
 				}
@@ -380,18 +380,24 @@ func TestAuthenticate(t *testing.T) {
 				return
 			}
 
+			// Handle error case first and return early
 			if tt.wantErr {
-				if st, ok := status.FromError(err); ok {
-					if st.Code() != tt.wantCode {
-						t.Errorf("authenticate() status code = %v, want %v", st.Code(), tt.wantCode)
-					}
-				} else {
+				st, ok := status.FromError(err)
+				if !ok {
 					t.Error("authenticate() error is not a gRPC status error")
+					return
 				}
-			} else {
-				if userID != tt.wantUserID {
-					t.Errorf("authenticate() userID = %v, want %v", userID, tt.wantUserID)
+
+				if st.Code() != tt.wantCode {
+					t.Errorf("authenticate() status code = %v, want %v", st.Code(), tt.wantCode)
 				}
+
+				return
+			}
+
+			// Success case - no errors expected
+			if userID != tt.wantUserID {
+				t.Errorf("authenticate() userID = %v, want %v", userID, tt.wantUserID)
 			}
 		})
 	}
@@ -410,7 +416,7 @@ func TestStreamAuthInterceptor(t *testing.T) {
 			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer valid-token")),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*auth.Claims, error) {
+					validateTokenFunc: func(_ string) (*auth.Claims, error) {
 						return &auth.Claims{UserID: 123}, nil
 					},
 				}
@@ -431,7 +437,7 @@ func TestStreamAuthInterceptor(t *testing.T) {
 			ctx:  metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer invalid-token")),
 			mockSetup: func() *mockAuthenticator {
 				return &mockAuthenticator{
-					validateTokenFunc: func(token string) (*auth.Claims, error) {
+					validateTokenFunc: func(_ string) (*auth.Claims, error) {
 						return nil, status.Error(codes.Unauthenticated, "invalid token")
 					},
 				}
@@ -451,14 +457,16 @@ func TestStreamAuthInterceptor(t *testing.T) {
 				FullMethod: "/test.Service/StreamMethod",
 			}
 
-			handler := func(srv any, stream grpc.ServerStream) error {
+			handler := func(_ any, stream grpc.ServerStream) error {
 				userID, ok := UserIDFromContext(stream.Context())
 				if !ok {
 					return status.Error(codes.Internal, "user ID not found in context")
 				}
+
 				if userID != 123 && tt.name == "success" {
 					return status.Errorf(codes.Internal, "user ID mismatch: got %v, want 123", userID)
 				}
+
 				return nil
 			}
 
@@ -469,14 +477,16 @@ func TestStreamAuthInterceptor(t *testing.T) {
 				return
 			}
 
-			if tt.wantErr {
-				if st, ok := status.FromError(err); ok {
-					if st.Code() != tt.wantCode {
-						t.Errorf("StreamAuthInterceptor() status code = %v, want %v", st.Code(), tt.wantCode)
-					}
-				} else {
-					t.Error("StreamAuthInterceptor() error is not a gRPC status error")
+			if tt.wantErr == false {
+				return
+			}
+
+			if st, ok := status.FromError(err); ok {
+				if st.Code() != tt.wantCode {
+					t.Errorf("StreamAuthInterceptor() status code = %v, want %v", st.Code(), tt.wantCode)
 				}
+			} else {
+				t.Error("StreamAuthInterceptor() error is not a gRPC status error")
 			}
 		})
 	}

@@ -11,12 +11,11 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
 
-// GophKeeperApp is a structure to represent gophkeeper server side app and its main components
+// GophKeeperApp is a structure to represent gophkeeper server side app and its main components.
 type GophKeeperApp struct {
 	Config        *config.Config
 	Logger        *slog.Logger
@@ -29,7 +28,7 @@ func NewGophKeeperApp(
 	l *slog.Logger,
 	userService *service.UserService,
 	vaultService *service.VaultService,
-	authenticator *auth.Authenticator,
+	authenticator auth.Authenticator,
 ) *GophKeeperApp {
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
@@ -40,18 +39,18 @@ func NewGophKeeperApp(
 	}
 	gRPCServer := grpc.NewServer(grpc.ChainUnaryInterceptor(
 		recovery.UnaryServerInterceptor(recoveryOpts...),
-		middleware.AuthUnaryInterceptor(*authenticator),
+		middleware.AuthUnaryInterceptor(authenticator),
 	),
-		grpc.ChainStreamInterceptor(middleware.StreamAuthInterceptor(*authenticator)),
+		grpc.ChainStreamInterceptor(middleware.StreamAuthInterceptor(authenticator)),
 	)
 
-	proto.RegisterGophKeeperServer(gRPCServer, proto.NewGophKeepergRPCServer(userService, vaultService, cfg, *authenticator))
+	proto.RegisterGophKeeperServer(gRPCServer, proto.NewGophKeepergRPCServer(userService, vaultService, cfg, authenticator))
 	reflection.Register(gRPCServer)
 
 	return &GophKeeperApp{
 		Config:        cfg,
 		Logger:        l,
 		GRPCServer:    gRPCServer,
-		Authenticator: authenticator,
+		Authenticator: &authenticator,
 	}
 }

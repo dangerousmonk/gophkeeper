@@ -27,6 +27,7 @@ const (
 	GophKeeper_DeactivateVault_FullMethodName  = "/server.GophKeeper/DeactivateVault"
 	GophKeeper_UploadFile_FullMethodName       = "/server.GophKeeper/UploadFile"
 	GophKeeper_GetSteamedVaults_FullMethodName = "/server.GophKeeper/GetSteamedVaults"
+	GophKeeper_UpdateVault_FullMethodName      = "/server.GophKeeper/UpdateVault"
 )
 
 // GophKeeperClient is the client API for GophKeeper service.
@@ -49,6 +50,8 @@ type GophKeeperClient interface {
 	UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadFileRequest, VaultItem], error)
 	// Retrieve all vaults saved by user using streamed response
 	GetSteamedVaults(ctx context.Context, in *StreamVaultsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamVaultsResponse], error)
+	// UpdateVault is used to update specific vault record with new data
+	UpdateVault(ctx context.Context, in *UpdateVaultRequest, opts ...grpc.CallOption) (*UpdateVaultResponse, error)
 }
 
 type gophKeeperClient struct {
@@ -151,6 +154,16 @@ func (c *gophKeeperClient) GetSteamedVaults(ctx context.Context, in *StreamVault
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GophKeeper_GetSteamedVaultsClient = grpc.ServerStreamingClient[StreamVaultsResponse]
 
+func (c *gophKeeperClient) UpdateVault(ctx context.Context, in *UpdateVaultRequest, opts ...grpc.CallOption) (*UpdateVaultResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateVaultResponse)
+	err := c.cc.Invoke(ctx, GophKeeper_UpdateVault_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GophKeeperServer is the server API for GophKeeper service.
 // All implementations must embed UnimplementedGophKeeperServer
 // for forward compatibility.
@@ -171,6 +184,8 @@ type GophKeeperServer interface {
 	UploadFile(grpc.ClientStreamingServer[UploadFileRequest, VaultItem]) error
 	// Retrieve all vaults saved by user using streamed response
 	GetSteamedVaults(*StreamVaultsRequest, grpc.ServerStreamingServer[StreamVaultsResponse]) error
+	// UpdateVault is used to update specific vault record with new data
+	UpdateVault(context.Context, *UpdateVaultRequest) (*UpdateVaultResponse, error)
 	mustEmbedUnimplementedGophKeeperServer()
 }
 
@@ -204,6 +219,9 @@ func (UnimplementedGophKeeperServer) UploadFile(grpc.ClientStreamingServer[Uploa
 }
 func (UnimplementedGophKeeperServer) GetSteamedVaults(*StreamVaultsRequest, grpc.ServerStreamingServer[StreamVaultsResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method GetSteamedVaults not implemented")
+}
+func (UnimplementedGophKeeperServer) UpdateVault(context.Context, *UpdateVaultRequest) (*UpdateVaultResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVault not implemented")
 }
 func (UnimplementedGophKeeperServer) mustEmbedUnimplementedGophKeeperServer() {}
 func (UnimplementedGophKeeperServer) testEmbeddedByValue()                    {}
@@ -352,6 +370,24 @@ func _GophKeeper_GetSteamedVaults_Handler(srv interface{}, stream grpc.ServerStr
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GophKeeper_GetSteamedVaultsServer = grpc.ServerStreamingServer[StreamVaultsResponse]
 
+func _GophKeeper_UpdateVault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateVaultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServer).UpdateVault(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GophKeeper_UpdateVault_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServer).UpdateVault(ctx, req.(*UpdateVaultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GophKeeper_ServiceDesc is the grpc.ServiceDesc for GophKeeper service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -382,6 +418,10 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeactivateVault",
 			Handler:    _GophKeeper_DeactivateVault_Handler,
+		},
+		{
+			MethodName: "UpdateVault",
+			Handler:    _GophKeeper_UpdateVault_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

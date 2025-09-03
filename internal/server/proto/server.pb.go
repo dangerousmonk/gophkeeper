@@ -9,7 +9,6 @@ package proto
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	_ "google.golang.org/protobuf/types/known/emptypb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
@@ -1107,11 +1106,132 @@ func (*UploadFileRequest_ChunkData) isUploadFileRequest_Data() {}
 
 func (*UploadFileRequest_MetaData) isUploadFileRequest_Data() {}
 
+// Message for updating vault record
+type UpdateVaultRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	EncryptedData []byte                 `protobuf:"bytes,3,opt,name=encrypted_data,json=encryptedData,proto3" json:"encrypted_data,omitempty"`
+	MetaData      *structpb.Struct       `protobuf:"bytes,4,opt,name=meta_data,json=metaData,proto3" json:"meta_data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateVaultRequest) Reset() {
+	*x = UpdateVaultRequest{}
+	mi := &file_server_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateVaultRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateVaultRequest) ProtoMessage() {}
+
+func (x *UpdateVaultRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateVaultRequest.ProtoReflect.Descriptor instead.
+func (*UpdateVaultRequest) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *UpdateVaultRequest) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UpdateVaultRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateVaultRequest) GetEncryptedData() []byte {
+	if x != nil {
+		return x.EncryptedData
+	}
+	return nil
+}
+
+func (x *UpdateVaultRequest) GetMetaData() *structpb.Struct {
+	if x != nil {
+		return x.MetaData
+	}
+	return nil
+}
+
+type UpdateVaultResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateVaultResponse) Reset() {
+	*x = UpdateVaultResponse{}
+	mi := &file_server_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateVaultResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateVaultResponse) ProtoMessage() {}
+
+func (x *UpdateVaultResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateVaultResponse.ProtoReflect.Descriptor instead.
+func (*UpdateVaultResponse) Descriptor() ([]byte, []int) {
+	return file_server_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *UpdateVaultResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *UpdateVaultResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_server_proto protoreflect.FileDescriptor
 
 const file_server_proto_rawDesc = "" +
 	"\n" +
-	"\fserver.proto\x12\x06server\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\"\r\n" +
+	"\fserver.proto\x12\x06server\x1a\x1cgoogle/protobuf/struct.proto\"\r\n" +
 	"\vPingRequest\"\x0e\n" +
 	"\fPingResponse\"G\n" +
 	"\x13RegisterUserRequest\x12\x14\n" +
@@ -1185,7 +1305,15 @@ const file_server_proto_rawDesc = "" +
 	"\n" +
 	"chunk_data\x18\x02 \x01(\fH\x00R\tchunkData\x126\n" +
 	"\tmeta_data\x18\x03 \x01(\v2\x17.google.protobuf.StructH\x00R\bmetaDataB\x06\n" +
-	"\x04data2\xc2\x04\n" +
+	"\x04data\"\x95\x01\n" +
+	"\x12UpdateVaultRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
+	"\x0eencrypted_data\x18\x03 \x01(\fR\rencryptedData\x124\n" +
+	"\tmeta_data\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetaData\"I\n" +
+	"\x13UpdateVaultResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\x8a\x05\n" +
 	"\n" +
 	"GophKeeper\x121\n" +
 	"\x04Ping\x12\x13.server.PingRequest\x1a\x14.server.PingResponse\x12I\n" +
@@ -1196,7 +1324,8 @@ const file_server_proto_rawDesc = "" +
 	"\x0fDeactivateVault\x12\x1e.server.DeactivateVaultRequest\x1a\x1f.server.DeactivateVaultResponse\x12<\n" +
 	"\n" +
 	"UploadFile\x12\x19.server.UploadFileRequest\x1a\x11.server.VaultItem(\x01\x12O\n" +
-	"\x10GetSteamedVaults\x12\x1b.server.StreamVaultsRequest\x1a\x1c.server.StreamVaultsResponse0\x01B\x17Z\x15internal/server/protob\x06proto3"
+	"\x10GetSteamedVaults\x12\x1b.server.StreamVaultsRequest\x1a\x1c.server.StreamVaultsResponse0\x01\x12F\n" +
+	"\vUpdateVault\x12\x1a.server.UpdateVaultRequest\x1a\x1b.server.UpdateVaultResponseB\x17Z\x15internal/server/protob\x06proto3"
 
 var (
 	file_server_proto_rawDescOnce sync.Once
@@ -1210,7 +1339,7 @@ func file_server_proto_rawDescGZIP() []byte {
 	return file_server_proto_rawDescData
 }
 
-var file_server_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_server_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_server_proto_goTypes = []any{
 	(*PingRequest)(nil),             // 0: server.PingRequest
 	(*PingResponse)(nil),            // 1: server.PingResponse
@@ -1230,36 +1359,41 @@ var file_server_proto_goTypes = []any{
 	(*StreamVaultsRequest)(nil),     // 15: server.StreamVaultsRequest
 	(*StreamVaultsResponse)(nil),    // 16: server.StreamVaultsResponse
 	(*UploadFileRequest)(nil),       // 17: server.UploadFileRequest
-	(*structpb.Struct)(nil),         // 18: google.protobuf.Struct
+	(*UpdateVaultRequest)(nil),      // 18: server.UpdateVaultRequest
+	(*UpdateVaultResponse)(nil),     // 19: server.UpdateVaultResponse
+	(*structpb.Struct)(nil),         // 20: google.protobuf.Struct
 }
 var file_server_proto_depIdxs = []int32{
-	18, // 0: server.SaveVaultRequest.meta_data:type_name -> google.protobuf.Struct
-	18, // 1: server.VaultItem.meta_data:type_name -> google.protobuf.Struct
+	20, // 0: server.SaveVaultRequest.meta_data:type_name -> google.protobuf.Struct
+	20, // 1: server.VaultItem.meta_data:type_name -> google.protobuf.Struct
 	12, // 2: server.VaultItemChunk.item:type_name -> server.VaultItem
 	13, // 3: server.StreamVaultsResponse.item_chunk:type_name -> server.VaultItemChunk
 	14, // 4: server.StreamVaultsResponse.metadata:type_name -> server.StreamMetadata
-	18, // 5: server.UploadFileRequest.meta_data:type_name -> google.protobuf.Struct
-	0,  // 6: server.GophKeeper.Ping:input_type -> server.PingRequest
-	2,  // 7: server.GophKeeper.RegisterUser:input_type -> server.RegisterUserRequest
-	4,  // 8: server.GophKeeper.LoginUser:input_type -> server.LoginUserRequest
-	6,  // 9: server.GophKeeper.ChangePassword:input_type -> server.ChangePasswordRequest
-	8,  // 10: server.GophKeeper.SaveVault:input_type -> server.SaveVaultRequest
-	10, // 11: server.GophKeeper.DeactivateVault:input_type -> server.DeactivateVaultRequest
-	17, // 12: server.GophKeeper.UploadFile:input_type -> server.UploadFileRequest
-	15, // 13: server.GophKeeper.GetSteamedVaults:input_type -> server.StreamVaultsRequest
-	1,  // 14: server.GophKeeper.Ping:output_type -> server.PingResponse
-	3,  // 15: server.GophKeeper.RegisterUser:output_type -> server.RegisterUserResponse
-	5,  // 16: server.GophKeeper.LoginUser:output_type -> server.LoginUserResponse
-	7,  // 17: server.GophKeeper.ChangePassword:output_type -> server.ChangePasswordResponse
-	9,  // 18: server.GophKeeper.SaveVault:output_type -> server.SaveVaultResponse
-	11, // 19: server.GophKeeper.DeactivateVault:output_type -> server.DeactivateVaultResponse
-	12, // 20: server.GophKeeper.UploadFile:output_type -> server.VaultItem
-	16, // 21: server.GophKeeper.GetSteamedVaults:output_type -> server.StreamVaultsResponse
-	14, // [14:22] is the sub-list for method output_type
-	6,  // [6:14] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	20, // 5: server.UploadFileRequest.meta_data:type_name -> google.protobuf.Struct
+	20, // 6: server.UpdateVaultRequest.meta_data:type_name -> google.protobuf.Struct
+	0,  // 7: server.GophKeeper.Ping:input_type -> server.PingRequest
+	2,  // 8: server.GophKeeper.RegisterUser:input_type -> server.RegisterUserRequest
+	4,  // 9: server.GophKeeper.LoginUser:input_type -> server.LoginUserRequest
+	6,  // 10: server.GophKeeper.ChangePassword:input_type -> server.ChangePasswordRequest
+	8,  // 11: server.GophKeeper.SaveVault:input_type -> server.SaveVaultRequest
+	10, // 12: server.GophKeeper.DeactivateVault:input_type -> server.DeactivateVaultRequest
+	17, // 13: server.GophKeeper.UploadFile:input_type -> server.UploadFileRequest
+	15, // 14: server.GophKeeper.GetSteamedVaults:input_type -> server.StreamVaultsRequest
+	18, // 15: server.GophKeeper.UpdateVault:input_type -> server.UpdateVaultRequest
+	1,  // 16: server.GophKeeper.Ping:output_type -> server.PingResponse
+	3,  // 17: server.GophKeeper.RegisterUser:output_type -> server.RegisterUserResponse
+	5,  // 18: server.GophKeeper.LoginUser:output_type -> server.LoginUserResponse
+	7,  // 19: server.GophKeeper.ChangePassword:output_type -> server.ChangePasswordResponse
+	9,  // 20: server.GophKeeper.SaveVault:output_type -> server.SaveVaultResponse
+	11, // 21: server.GophKeeper.DeactivateVault:output_type -> server.DeactivateVaultResponse
+	12, // 22: server.GophKeeper.UploadFile:output_type -> server.VaultItem
+	16, // 23: server.GophKeeper.GetSteamedVaults:output_type -> server.StreamVaultsResponse
+	19, // 24: server.GophKeeper.UpdateVault:output_type -> server.UpdateVaultResponse
+	16, // [16:25] is the sub-list for method output_type
+	7,  // [7:16] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_server_proto_init() }
@@ -1281,7 +1415,7 @@ func file_server_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_server_proto_rawDesc), len(file_server_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

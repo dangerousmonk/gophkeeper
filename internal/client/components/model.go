@@ -7,10 +7,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"google.golang.org/grpc"
-
 	"github.com/dangerousmonk/gophkeeper/internal/client/messages"
 	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
+	"google.golang.org/grpc"
 )
 
 type Model struct {
@@ -29,19 +28,21 @@ type Model struct {
 	CurrentForm   *formDefinition
 	SelectedVault *proto.VaultItem
 
-	grpcConn *grpc.ClientConn
-	client   proto.GophKeeperClient
-	log      *slog.Logger
+	grpcConn      *grpc.ClientConn
+	client        proto.GophKeeperClient
+	log           *slog.Logger
+	encryptionKey string
 }
 
-func NewModel(conn *grpc.ClientConn, client *proto.GophKeeperClient, log *slog.Logger) Model {
+func NewModel(conn *grpc.ClientConn, client proto.GophKeeperClient, log *slog.Logger, encKey string) Model {
 	return Model{
-		State:    stateStartMenu,
-		Focus:    0,
-		FormData: make(map[string]string),
-		grpcConn: conn,
-		client:   *client,
-		log:      log,
+		State:         stateStartMenu,
+		Focus:         0,
+		FormData:      make(map[string]string),
+		grpcConn:      conn,
+		client:        client,
+		log:           log,
+		encryptionKey: encKey,
 	}
 }
 
@@ -55,37 +56,44 @@ func (m *Model) resetForm() {
 	m.SelectedVault = nil
 }
 
-// Helper method to initialize forms
+// Helper method to initialize forms.
 func (m *Model) initializeForm(sType secretType, formDef formDefinition) (tea.Model, tea.Cmd) {
 	m.resetForm()
 	m.State = stateSaveSecret
 	m.SecretType = sType
 	m.CurrentForm = &formDef
+
 	return m, nil
 }
 
-// Helper method to initialize auth forms
+// Helper method to initialize auth forms.
 func (m *Model) initializeAuthForm(state appState, formDef formDefinition) (tea.Model, tea.Cmd) {
 	m.resetForm()
 	m.State = state
 	m.CurrentForm = &formDef
+
 	return m, nil
 }
 
 func (m *Model) handleTextInput(msg tea.KeyMsg) {
-	if m.Focus < len(m.CurrentForm.Fields) {
-		field := m.CurrentForm.Fields[m.Focus]
-		if msg.String() == backspace {
-			if len(m.FormData[field.Name]) > 0 {
-				m.FormData[field.Name] = m.FormData[field.Name][:len(m.FormData[field.Name])-1]
-			}
-		} else if len(msg.String()) == 1 {
-			m.FormData[field.Name] += msg.String()
+	if m.Focus >= len(m.CurrentForm.Fields) {
+		return
+	}
+
+	field := m.CurrentForm.Fields[m.Focus]
+
+	if msg.String() == backspace {
+		if m.FormData[field.Name] != "" {
+			m.FormData[field.Name] = m.FormData[field.Name][:len(m.FormData[field.Name])-1]
 		}
+	} else if len(msg.String()) == 1 {
+		m.FormData[field.Name] += msg.String()
 	}
 }
 
-// Update handles messages and updates the model
+// Update handles messages and updates the model.
+//
+//nolint:gocyclo,funlen // bubbletea update function
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -95,11 +103,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if isForExitOnCtrl(m.State) {
 				return m, tea.Quit
 			}
+
 			if m.State == stateViewSecretDetail {
 				m.SelectedVault = nil
 			}
+
 			m.State = getPreviousState(m.State)
 			m.resetForm()
+
 			return m, nil
 
 		case esc:
@@ -109,22 +120,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.State = stateStartMenu
 			case stateSaveSecret, stateSecretTypeMenu, stateChangePassword:
 				m.State = stateMainMenu
-			case stateViewSecretDetail:
+			case stateViewSecretDetail, stateUpdateSecret:
 				m.State = stateViewSecrets
 				m.SelectedVault = nil
 				// Reload secrets when returning from detail view
 				m.Loading = true
-				m.Message = "Refreshing secrets..."
-				return m, getVaultsStream(m.client, m.Token, m.Password)
+				m.Message = loadMsg
+
+				return m, getVaultsStream(m.client, m.Token, m.encryptionKey)
 			case stateViewSecrets:
 				m.State = stateMainMenu
 			case stateMainMenu:
 				if m.Token != "" {
 					return m, nil
 				}
+
 				m.State = stateStartMenu
 			}
+
 			m.resetForm()
+
 			return m, nil
 
 		case tab, shiftTab, enter, up, down:
@@ -155,7 +170,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case stateChangePassword:
 				return m.handleChangePasswordNavigation(key)
+			case stateUpdateSecret:
+				return m.handleUpdateSecretNavigation(key)
 			}
+
 			return m, nil
 
 		default:
@@ -170,8 +188,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case esc:
 				m.State = stateMainMenu // Fallback to main menu
 				m.resetForm()
+
 				return m, nil
 			}
+
 			return m, nil
 		}
 
@@ -188,6 +208,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Login = msg.Login
 			m.resetForm()
 		}
+
 		return m, nil
 
 	case messages.LoginResultMsg:
@@ -204,6 +225,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Login = msg.Login
 			m.resetForm()
 		}
+
 		return m, nil
 
 	case messages.SaveVaultResultMsg:
@@ -217,6 +239,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.State = stateMainMenu
 			m.resetForm()
 		}
+
 		return m, nil
 
 	case messages.GetVaultsResultMsg:
@@ -224,27 +247,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Err != nil {
 			m.Err = msg.Err
 			m.Message = "Fetch Error: " + msg.Err.Error()
-		} else {
-			m.Success = true
-			// Filter out deactivated secrets and count active ones
-			var activeVaults []*proto.VaultItem
-			activeCount := 0
-			for _, vault := range msg.Vaults {
-				if vault.Active {
-					activeVaults = append(activeVaults, vault)
-					activeCount++
-				}
-			}
-			m.Vaults = activeVaults
 
-			// Use proper pluralization
-			if activeCount == 1 {
-				m.Message = "Found 1 secret"
-			} else {
-				m.Message = fmt.Sprintf("Found %d secrets", activeCount)
-			}
-			m.Focus = 0 // Reset focus to first item
+			return m, nil
 		}
+
+		m.Success = true
+
+		var activeVaults []*proto.VaultItem
+
+		activeCount := 0
+
+		for _, vault := range msg.Vaults {
+			if vault.Active {
+				activeVaults = append(activeVaults, vault)
+				activeCount++
+			}
+		}
+
+		m.Vaults = activeVaults
+
+		// Use proper pluralization.
+		if activeCount == 1 {
+			m.Message = "Found 1 secret"
+		} else {
+			m.Message = fmt.Sprintf("Found %d secrets", activeCount)
+		}
+
+		m.Focus = 0 // Reset focus to first item.
+
 		return m, nil
 	case messages.DeactivateVaultResultMsg:
 		m.Loading = false
@@ -253,16 +283,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Message = "Delete Error: " + msg.Err.Error()
 			// Stay in detail view to show error
 			return m, nil
-		} else {
-			m.Success = msg.Success
-			m.Message = "Secret deleted successfully!"
-			// Return to secrets list and refresh
-			m.State = stateViewSecrets
-			m.SelectedVault = nil
-			m.Loading = true
-			m.Message = "Refreshing secrets..."
-			return m, getVaultsStream(m.client, m.Token, m.Password) // Reload the updated list
 		}
+
+		m.Success = msg.Success
+		m.Message = "Secret deleted successfully!"
+		// Return to secrets list and refresh
+		m.State = stateViewSecrets
+		m.SelectedVault = nil
+		m.Loading = true
+		m.Message = loadMsg
+
+		return m, getVaultsStream(m.client, m.Token, m.encryptionKey) // Reload the updated list
+
 	case messages.DownloadResultMsg:
 		m.Loading = false
 		if msg.Err != nil {
@@ -282,16 +314,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.resetForm()
 			m.State = stateMainMenu
-			m.Success = msg.Sucess
+			m.Success = msg.Success
 		}
-		return m, nil
 
+		return m, nil
+	case messages.UpdateVaultResultMsg:
+		m.Loading = false
+		if msg.Err != nil {
+			m.Err = msg.Err
+			m.Message = "Update secret error: " + msg.Err.Error()
+		} else {
+			m.Loading = true
+			m.Message = loadMsg
+			m.State = stateViewSecrets
+			m.Success = msg.Success
+
+			return m, getVaultsStream(m.client, m.Token, m.encryptionKey) // Reload the updated list
+		}
+
+		return m, nil
 	}
 
 	return m, nil
 }
 
-// View renders the UI
+// View renders the UI.
 func (m Model) View() string {
 	if m.Err != nil {
 		return m.renderError()
@@ -322,6 +369,8 @@ func (m Model) View() string {
 		return m.renderDownloadProgressView()
 	case stateChangePassword:
 		return m.renderChangePasswordForm()
+	case stateUpdateSecret:
+		return m.renderSaveSecretForm()
 
 	default:
 		b.WriteString("Unknown state")

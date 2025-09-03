@@ -26,13 +26,16 @@ func (s *UserService) Login(
 	authenticator auth.Authenticator,
 ) (string, error) {
 	const op = "UserService:Login"
+
 	user, err := s.repo.Get(ctx, login)
 	if err != nil {
 		if errors.Is(err, postgres.ErrUserNotFound) {
 			slog.Warn(op, slog.Any("error", err))
 			return "", fmt.Errorf("%s %w", op, ErrNoUserWithLogin)
 		}
+
 		slog.Error(op, slog.Any("error", err))
+
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 

@@ -12,7 +12,7 @@ import (
 	"github.com/dangerousmonk/gophkeeper/internal/models"
 )
 
-// The MetaData struct represents the data in the JSON/JSONB column
+// The MetaData struct represents the data in the JSON/JSONB column.
 type MetaData struct {
 	FileName string `json:"file_name,omitempty"`
 	FilePath string `json:"file_path,omitempty"`
@@ -20,12 +20,12 @@ type MetaData struct {
 	FileSize uint   `json:"file_size,omitempty"`
 }
 
-// Make the MetaData struct implement the driver.Valuer interface
+// Make the MetaData struct implement the driver.Valuer interface.
 func (a MetaData) Value() (driver.Value, error) {
 	return json.Marshal(a)
 }
 
-// Make the MetaData struct implement the sql.Scanner interface
+// Make the MetaData struct implement the sql.Scanner interface.
 func (a *MetaData) Scan(value interface{}) error {
 	b, ok := value.([]byte)
 	if !ok {
@@ -37,9 +37,11 @@ func (a *MetaData) Scan(value interface{}) error {
 
 func (r *vaultRepository) GetByUserID(ctx context.Context, userID int) ([]models.Vault, error) {
 	const selectFields = "id,user_id,name,data_type,encrypted_data,version,created_at,updated_at,active,meta_data"
+
 	const timeout = time.Second * 2
 
 	var vaults []models.Vault
+
 	var metaDataBytes []byte
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -53,7 +55,8 @@ func (r *vaultRepository) GetByUserID(ctx context.Context, userID int) ([]models
 
 	for rows.Next() {
 		var v models.Vault
-		if err = rows.Scan(
+
+		err := rows.Scan(
 			&v.ID,
 			&v.UserID,
 			&v.Name,
@@ -64,7 +67,8 @@ func (r *vaultRepository) GetByUserID(ctx context.Context, userID int) ([]models
 			&v.UpdatedAt,
 			&v.Active,
 			&metaDataBytes,
-		); err != nil {
+		)
+		if err != nil {
 			return nil, err
 		}
 
@@ -78,8 +82,8 @@ func (r *vaultRepository) GetByUserID(ctx context.Context, userID int) ([]models
 		}
 
 		vaults = append(vaults, v)
-
 	}
+
 	err = rows.Err()
 	if err != nil {
 		return nil, err
@@ -90,6 +94,7 @@ func (r *vaultRepository) GetByUserID(ctx context.Context, userID int) ([]models
 
 func (r *vaultRepository) Get(ctx context.Context, id int) (models.Vault, error) {
 	const selectFields = "id,user_id,name,data_type,encrypted_data,version,created_at,updated_at,active,meta_data"
+
 	const timeout = time.Second * 2
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -98,7 +103,9 @@ func (r *vaultRepository) Get(ctx context.Context, id int) (models.Vault, error)
 	row := r.db.QueryRowContext(ctx, `SELECT `+selectFields+` FROM vault WHERE id=$1;`, id)
 
 	meta := new(MetaData)
+
 	var vault models.Vault
+
 	err := row.Scan(
 		&vault.ID,
 		&vault.UserID,
@@ -111,12 +118,13 @@ func (r *vaultRepository) Get(ctx context.Context, id int) (models.Vault, error)
 		&vault.Active,
 		meta,
 	)
-
 	if err == nil {
 		return vault, nil
 	}
+
 	if err == sql.ErrNoRows {
 		return models.Vault{}, err
 	}
+
 	return models.Vault{}, err
 }

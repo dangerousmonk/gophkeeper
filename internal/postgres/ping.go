@@ -12,5 +12,6 @@ func (r *userRepository) Ping(ctx context.Context) error {
 	if err := r.db.PingContext(ctx); err != nil {
 		return err
 	}
+
 	return nil
 }

@@ -92,6 +92,10 @@ coverage-percent:
 	@coverage=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}'); \
 	echo "Coverage percent is $$coverage"
 
+# Run linter
+.PHONY: lint
+lint:
+	golangci-lint run --config .golangci.yml ./...
 
 # Help message
 .PHONY: help
@@ -107,4 +111,5 @@ help:
 	@echo "  make test        - Run tests without cache"
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make coverage-percent - See output coverage percent"
+	@echo "  make lint        - Run linter"
 	@echo "  make help        - Show this help message"

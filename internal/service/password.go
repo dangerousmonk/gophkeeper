@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/dangerousmonk/gophkeeper/internal/models"
@@ -17,11 +18,17 @@ var (
 
 func (s *UserService) ChangePassword(ctx context.Context, userID int, req *models.ChangePasswordRequest) (*models.ChangePasswordResponse, error) {
 	const op = "UserService:ChangePassword"
+
 	validate := validator.New(validator.WithRequiredStructEnabled())
+
 	err := validate.Struct(req)
 	if err != nil {
-		errors := err.(validator.ValidationErrors)
-		return &models.ChangePasswordResponse{Success: false}, errors
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			return &models.ChangePasswordResponse{Success: false}, validationErrors
+		}
+		// Handle case where error is not a ValidationErrors
+		return &models.ChangePasswordResponse{Success: false}, fmt.Errorf("validation failed: %w", err)
 	}
 
 	if req.CurrentPassword == req.NewPassword {
@@ -52,5 +59,6 @@ func (s *UserService) ChangePassword(ctx context.Context, userID int, req *model
 	}
 
 	slog.Info(op+"success", slog.Int("user_id", userID))
+
 	return &models.ChangePasswordResponse{Success: true}, nil
 }

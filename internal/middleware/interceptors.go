@@ -16,9 +16,7 @@ type contextKey struct {
 	name string
 }
 
-var (
-	userIDContextKey = &contextKey{"userID"}
-)
+var userIDContextKey = &contextKey{"userID"}
 
 const (
 	bearerPrefix = "Bearer "
@@ -46,7 +44,6 @@ func AuthUnaryInterceptor(jwtManager auth.Authenticator) grpc.UnaryServerInterce
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-
 		if IsPublicMethod(info.FullMethod) {
 			return handler(ctx, req)
 		}
@@ -70,9 +67,11 @@ func AuthUnaryInterceptor(jwtManager auth.Authenticator) grpc.UnaryServerInterce
 		if err != nil {
 			return nil, status.Errorf(codes.Unauthenticated, "invalid token")
 		}
+
 		userID := claims.UserID
 
 		ctx = context.WithValue(ctx, userIDContextKey, userID)
+
 		return handler(ctx, req)
 	}
 }
@@ -91,10 +90,11 @@ func UserIDFromContext(ctx context.Context) (int, bool) {
 			return userID, true
 		}
 	}
+
 	return -1, false
 }
 
-// wrappedServerStream wraps the original ServerStream to override the context
+// wrappedServerStream wraps the original ServerStream to override the context.
 type wrappedServerStream struct {
 	grpc.ServerStream
 	ctx context.Context
@@ -104,10 +104,11 @@ func (s *wrappedServerStream) Context() context.Context {
 	return s.ctx
 }
 
-// StreamAuthInterceptor is uses to check user token for for streaming RPCs
+// StreamAuthInterceptor is uses to check user token for for streaming RPCs.
 func StreamAuthInterceptor(jwtManager auth.Authenticator) grpc.StreamServerInterceptor {
-	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := ss.Context()
+
 		userID, err := authenticate(ctx, jwtManager)
 		if err != nil {
 			slog.Warn("StreamAuthInterceptor: authentication failed", slog.Any("error", err))
@@ -117,12 +118,14 @@ func StreamAuthInterceptor(jwtManager auth.Authenticator) grpc.StreamServerInter
 		ctx = context.WithValue(ctx, userIDContextKey, userID)
 
 		wrappedStream := &wrappedServerStream{ss, ctx}
+
 		slog.Info("StreamAuthInterceptor: user authenticated", slog.Int("user_id", userID))
+
 		return handler(srv, wrappedStream)
 	}
 }
 
-// authenticate extracts and validates token from gRPC metadata
+// authenticate extracts and validates token from gRPC metadata.
 func authenticate(ctx context.Context, jwtManager auth.Authenticator) (int, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -150,6 +153,8 @@ func authenticate(ctx context.Context, jwtManager auth.Authenticator) (int, erro
 		slog.Warn("authenticate: invalid token", slog.String("token", token))
 		return -1, status.Errorf(codes.Unauthenticated, "invalid token")
 	}
+
 	userID := claims.UserID
+
 	return userID, nil
 }

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -59,6 +60,7 @@ func TestJWTAuthenticatorCreateToken(t *testing.T) {
 			if err != nil && !tt.wantErr {
 				t.Fatalf("NewJWTAuthenticator() unexpected error = %v", err)
 			}
+
 			if err != nil && tt.wantErr {
 				return
 			}
@@ -76,8 +78,10 @@ func TestJWTAuthenticatorCreateToken(t *testing.T) {
 	}
 }
 
+//nolint:gosec // test value
 func TestJWTAuthenticatorValidateToken(t *testing.T) {
 	validSecret := "dzb069fe533c433ab1f0c822dba31129"
+
 	auth, err := NewJWTAuthenticator(validSecret)
 	if err != nil {
 		t.Fatalf("NewJWTAuthenticator() error = %v", err)
@@ -192,16 +196,19 @@ func TestNewClaims(t *testing.T) {
 			}
 
 			if tt.wantErr {
-				if err != tt.errType {
+				if !errors.Is(err, tt.errType) {
 					t.Errorf("NewClaims() error = %v, wantErr %v", err, tt.errType)
 				}
-			} else {
-				if claims.UserID != tt.userID {
-					t.Errorf("NewClaims() userID = %v, want %v", claims.UserID, tt.userID)
-				}
-				if claims.ExpiresAt == nil {
-					t.Error("NewClaims() ExpiresAt should not be nil")
-				}
+
+				return
+			}
+
+			if claims.UserID != tt.userID {
+				t.Errorf("NewClaims() userID = %v, want %v", claims.UserID, tt.userID)
+			}
+
+			if claims.ExpiresAt == nil {
+				t.Error("NewClaims() ExpiresAt should not be nil")
 			}
 		})
 	}
@@ -258,23 +265,28 @@ func TestNewJWTAuthenticator(t *testing.T) {
 				return
 			}
 
+			// Handle error case first and return early
 			if tt.wantErr {
 				if err == nil {
 					t.Error("NewJWTAuthenticator() expected error, got nil")
 					return
 				}
+
 				if err.Error() != tt.errMessage {
 					t.Errorf("NewJWTAuthenticator() error message = %v, want %v", err.Error(), tt.errMessage)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("NewJWTAuthenticator() unexpected error = %v", err)
-					return
-				}
-				if auth == nil {
-					t.Error("NewJWTAuthenticator() returned nil authenticator")
-				}
 
+				return
+			}
+
+			// Success case - no errors expected
+			if err != nil {
+				t.Errorf("NewJWTAuthenticator() unexpected error = %v", err)
+				return
+			}
+
+			if auth == nil {
+				t.Error("NewJWTAuthenticator() returned nil authenticator")
 			}
 		})
 	}
@@ -387,7 +399,7 @@ func TestClaimsValid(t *testing.T) {
 			}
 
 			if tt.wantErr {
-				if err != tt.expectedErr {
+				if errors.Is(err, tt.expectedErr) != true {
 					t.Errorf("Claims.Valid() error = %v, expectedErr %v", err, tt.expectedErr)
 				}
 			} else {

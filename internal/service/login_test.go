@@ -107,6 +107,7 @@ func TestLogin(t *testing.T) {
 
 			repo := pgm.NewMockUserRepository(ctrl)
 			encryptor := encryptm.NewMockPasswordEncryptor(ctrl)
+
 			tc.buildRepoStub(repo)
 			tc.buildEncryptStub(encryptor)
 
@@ -121,7 +122,6 @@ func TestLogin(t *testing.T) {
 				require.NotNil(t, token)
 				require.GreaterOrEqual(t, len(token), 4)
 			}
-
 		})
 	}
 }

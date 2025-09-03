@@ -15,8 +15,9 @@ type DatabaseConfig struct {
 }
 
 type Config struct {
-	Server      ServerConfig   `mapstructure:",squash"`
-	Database    DatabaseConfig `mapstructure:",squash"`
-	JWTSecret   string         `mapstructure:"JWT_SECRET"`
-	Environment string         `mapstructure:"ENV"`
+	Server        ServerConfig   `mapstructure:",squash"`
+	Database      DatabaseConfig `mapstructure:",squash"`
+	JWTSecret     string         `mapstructure:"JWT_SECRET"`
+	EncryptionKey string         `mapstructure:"ENCRYPTION_KEY"`
+	Environment   string         `mapstructure:"ENV"`
 }

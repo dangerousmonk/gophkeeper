@@ -18,7 +18,7 @@ const (
 	tb          = gb << 10
 )
 
-// FormatFileSize is a helper to format file size from bytes to other units
+// FormatFileSize is a helper to format file size from bytes to other units.
 func FormatFileSize(size int64) string {
 	switch {
 	case size < int64(kb):
@@ -34,28 +34,33 @@ func FormatFileSize(size int64) string {
 	}
 }
 
-// GetFileMetadata returns file metadata including its name, path, size and it's type as a string
+// GetFileMetadata returns file metadata including its name, path, size and it's type as a string.
 func GetFileMetadata(path string) (map[string]any, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file info: %w", err)
 	}
+
 	fileType := strings.TrimPrefix(filepath.Ext(path), ".")
+
 	if fileType == "" {
 		fileType = "unknown"
 	}
+
 	meta := map[string]any{
 		"file_name": fileInfo.Name(),
 		"file_path": path,
 		"file_size": float64(fileInfo.Size()),
 		"file_type": fileType,
 	}
+
 	return meta, nil
 }
 
-// MergeChunks combines chunks into the original byte array
+// MergeChunks combines chunks into the original byte array.
 func MergeChunks(chunks [][]byte) []byte {
 	var buffer bytes.Buffer
+
 	for _, chunk := range chunks {
 		if chunk != nil {
 			buffer.Write(chunk)

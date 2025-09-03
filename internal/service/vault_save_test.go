@@ -86,13 +86,13 @@ func TestVaultSave(t *testing.T) {
 
 			if tc.wantError {
 				require.Error(t, err)
+
 				if tc.name != "validation_errors" {
 					require.ErrorIs(t, err, tc.expectedError)
 				}
 			} else {
 				require.NoError(t, err)
 			}
-
 		})
 	}
 }

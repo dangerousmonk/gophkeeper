@@ -3,6 +3,7 @@ package proto
 import (
 	"bytes"
 	context "context"
+	"errors"
 	"io"
 	"log/slog"
 	"time"
@@ -21,7 +22,7 @@ const (
 	chunkSize = 1024 * 1024 // 1MB chunk
 )
 
-// GophKeepergRPCServer Supports all the service methods
+// GophKeepergRPCServer Supports all the service methods.
 type GophKeepergRPCServer struct {
 	UnimplementedGophKeeperServer
 	userService   *service.UserService
@@ -45,47 +46,56 @@ func NewGophKeepergRPCServer(
 	}
 }
 
-// Ping checks the service health
+// Ping checks the service health.
 func (srv GophKeepergRPCServer) Ping(ctx context.Context, _ *PingRequest) (*PingResponse, error) {
 	err := srv.userService.Ping(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	return &PingResponse{}, nil
 }
 
-// RegisterUser is used to register new user
+// RegisterUser is used to register new user.
 func (srv GophKeepergRPCServer) RegisterUser(ctx context.Context, req *RegisterUserRequest) (*RegisterUserResponse, error) {
 	registerReq := &models.RegisterUserRequest{Login: req.Login, Password: req.Password}
+
 	res, err := srv.userService.Register(ctx, registerReq)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	token, err := srv.authenticator.CreateToken(res.ID, time.Hour*1)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	resp := RegisterUserResponse{Id: uint64(res.ID), Login: res.Login, Token: token, Success: res.Success}
+
 	return &resp, nil
 }
 
-// RegisterUser is used to register new user
+// RegisterUser is used to register new user.
 func (srv GophKeepergRPCServer) LoginUser(ctx context.Context, req *LoginUserRequest) (*LoginUserResponse, error) {
 	registerReq := &models.LoginUserRequest{Login: req.Login, Password: req.Password}
+
 	token, err := srv.userService.Login(ctx, registerReq.Login, registerReq.Password, srv.authenticator)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	resp := LoginUserResponse{Token: token, Success: true}
+
 	return &resp, nil
 }
 
-// SaveVault saves data from client to vault
+// SaveVault saves data from client to vault.
 func (srv GophKeepergRPCServer) SaveVault(ctx context.Context, req *SaveVaultRequest) (*SaveVaultResponse, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
+
 	v := models.Vault{
 		UserID:        userID,
 		Name:          req.Name,
@@ -93,23 +103,27 @@ func (srv GophKeepergRPCServer) SaveVault(ctx context.Context, req *SaveVaultReq
 		EncryptedData: req.EcryptedData,
 		MetaData:      req.MetaData.AsMap(),
 	}
+
 	_, err := srv.vaultService.Save(ctx, &v)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	return &SaveVaultResponse{Success: true}, nil
 }
 
-// SaveVault saves data from client to vault
+// DeactivateVault is used to soft delete specific vault by using active flag.
 func (srv GophKeepergRPCServer) DeactivateVault(ctx context.Context, req *DeactivateVaultRequest) (*DeactivateVaultResponse, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
+
 	err := srv.vaultService.Deactivate(ctx, userID, int(req.SecretId))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	return &DeactivateVaultResponse{Success: true}, nil
 }
 
@@ -131,16 +145,19 @@ func (srv GophKeepergRPCServer) UploadFile(stream GophKeeper_UploadFileServer) e
 	metaData := req.GetMetaData()
 
 	slog.Info("uploadFile:received request", slog.Any("meta_data", metaData))
+
 	for {
 		req, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			slog.Info("uploadFile:request", slog.String("message", "no more data"))
 			break
 		}
+
 		if err != nil {
 			slog.Warn("uploadFile:failed", slog.Any("error", err))
 			return status.Error(codes.Unknown, err.Error())
 		}
+
 		chunk := req.GetChunkData()
 		size := len(chunk)
 		fileSize += size
@@ -165,6 +182,7 @@ func (srv GophKeepergRPCServer) UploadFile(stream GophKeeper_UploadFileServer) e
 		slog.Warn("uploadFile:service save failed", slog.Any("error", err))
 		return status.Error(codes.Internal, err.Error())
 	}
+
 	vItem := &VaultItem{
 		Id:            int32(res.ID),
 		UserId:        int32(res.UserID),
@@ -184,16 +202,20 @@ func (srv GophKeepergRPCServer) UploadFile(stream GophKeeper_UploadFileServer) e
 	}
 
 	slog.Info("uploadFile:success", slog.Int("file_size", fileSize))
+
 	return nil
 }
 
-func (srv *GophKeepergRPCServer) GetSteamedVaults(req *StreamVaultsRequest, stream GophKeeper_GetSteamedVaultsServer) error {
+//nolint:funlen // gRPC stream logic
+func (srv *GophKeepergRPCServer) GetSteamedVaults(_ *StreamVaultsRequest, stream GophKeeper_GetSteamedVaultsServer) error {
 	ctx := stream.Context()
 	userID, ok := middleware.UserIDFromContext(ctx)
+
 	if !ok {
 		slog.Warn("GetSteamedVaults:failed unauthorize", slog.Int("user_id", userID))
 		return status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
+
 	vaults, err := srv.vaultService.GetByUser(ctx, userID)
 	if err != nil {
 		slog.Warn("GetSteamedVaults:service fetch failed", slog.Any("error", err))
@@ -203,7 +225,10 @@ func (srv *GophKeepergRPCServer) GetSteamedVaults(req *StreamVaultsRequest, stre
 	slog.Info("GetSteamedVaults: received items from service", slog.Int("len", len(vaults)))
 
 	var vaultItems []*VaultItem
-	for _, v := range vaults {
+
+	for i := range vaults {
+		v := &vaults[i]
+
 		pbMeta, err := structpb.NewStruct(v.MetaData)
 		if err != nil {
 			slog.Warn("GetSteamedVaults:error creating structpb.Struct", slog.Any("error", err))
@@ -258,6 +283,7 @@ func (srv *GophKeepergRPCServer) GetSteamedVaults(req *StreamVaultsRequest, stre
 				slog.Warn("GetSteamedVaults: failed to send item without encrypted data chunks", slog.Any("error", err))
 				return err
 			}
+
 			continue
 		}
 
@@ -278,6 +304,7 @@ func (srv *GophKeepergRPCServer) GetSteamedVaults(req *StreamVaultsRequest, stre
 	}
 
 	slog.Info("GetSteamedVaults:success")
+
 	return nil
 }
 
@@ -312,26 +339,49 @@ func (srv *GophKeepergRPCServer) sendItemChunk(
 		IsFirstChunk:       isFirstChunk,
 		IsLastChunk:        isLastChunk,
 	}
+
 	return stream.Send(&StreamVaultsResponse{
 		Payload: &StreamVaultsResponse_ItemChunk{ItemChunk: vaultChunk},
 	})
 }
 
-// ChangePassword is used to change user password
+// ChangePassword is used to change user password.
 func (srv GophKeepergRPCServer) ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	userID, ok := middleware.UserIDFromContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
+
 	changeReq := &models.ChangePasswordRequest{
 		Login:           req.GetLogin(),
 		CurrentPassword: req.GetCurrentPassword(),
 		NewPassword:     req.GetNewPassword(),
 	}
+
 	_, err := srv.userService.ChangePassword(ctx, userID, changeReq)
 	if err != nil {
 		slog.Warn("ChangePassword:failed with error", slog.Any("error", err))
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	return &ChangePasswordResponse{Success: true}, nil
+}
+
+// UpdateVault is used update specific vault with new data.
+func (srv GophKeepergRPCServer) UpdateVault(ctx context.Context, req *UpdateVaultRequest) (*UpdateVaultResponse, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
+	}
+
+	err := srv.vaultService.Update(ctx, int(req.Id), userID, req.Name, req.GetEncryptedData())
+	if err != nil {
+		if errors.Is(err, service.ErrVaultOwnerMismatchUpdate) {
+			return nil, status.Errorf(codes.Unauthenticated, "Access to forbidden data")
+		}
+
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &UpdateVaultResponse{Success: true}, nil
 }

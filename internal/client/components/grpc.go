@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,30 +13,38 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/types/known/structpb"
-
 	"github.com/dangerousmonk/gophkeeper/internal/client/messages"
 	"github.com/dangerousmonk/gophkeeper/internal/encryption"
 	"github.com/dangerousmonk/gophkeeper/internal/files"
 	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func contextWithToken(token string, ctx context.Context) context.Context {
+// vaultItemWithData represents a fully reconstructed VaultItem.
+type vaultItemWithData struct {
+	*proto.VaultItem
+	ReconstructedData []byte
+}
+
+func contextWithToken(ctx context.Context, token string) context.Context {
 	if token != "" {
 		return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token)
 	}
+
 	return ctx
 }
 
 func registerUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
+	const timeout = 3 * time.Second
+
 	return func() tea.Msg {
 		req := &proto.RegisterUserRequest{
 			Login:    login,
 			Password: password,
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		resp, err := client.RegisterUser(ctx, req)
@@ -57,13 +66,15 @@ func registerUser(client proto.GophKeeperClient, login, password string) tea.Cmd
 }
 
 func loginUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
+	const timeout = 3 * time.Second
+
 	return func() tea.Msg {
 		req := &proto.LoginUserRequest{
 			Login:    login,
 			Password: password,
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		resp, err := client.LoginUser(ctx, req)
@@ -85,49 +96,52 @@ func loginUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
 	}
 }
 
+//nolint:funlen // gRPC save stream logic
 func saveVault(
-	client proto.GophKeeperClient,
-	token, password string,
-	sType secretType,
-	formData map[string]string,
+	m *Model,
 	title string,
 ) tea.Cmd {
+	const timeout = 15 * time.Second
+
 	return func() tea.Msg {
 		var secretData map[string]string
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		switch sType {
+		switch m.SecretType {
 		case secretTypeCredential:
 			secretData = map[string]string{
-				"service":  formData["Service"],
-				"username": formData["Username"],
-				"password": formData["Password"],
-				"url":      formData["URL"],
+				"service":  m.FormData["Service"],
+				"username": m.FormData["Username"],
+				"password": m.FormData["Password"],
+				"url":      m.FormData["URL"],
 			}
 		case secretTypeBankCard:
 			secretData = map[string]string{
-				"card_name":   formData["Card Name"],
-				"card_number": formData["Card Number"],
-				"expiry":      formData["Expiry"],
-				"cvv":         formData["CVV"],
-				"cardholder":  formData["Cardholder"],
+				"card_name":   m.FormData["Card Name"],
+				"card_number": m.FormData["Card Number"],
+				"expiry":      m.FormData["Expiry"],
+				"cvv":         m.FormData["CVV"],
+				"cardholder":  m.FormData["Cardholder"],
 			}
 		case secretTypeText:
 			secretData = map[string]string{
-				"title":   formData["Title"],
-				"content": formData["Content"],
+				"title":   m.FormData["Title"],
+				"content": m.FormData["Content"],
 			}
 		case secretTypeBinary:
-			fPath := formData["File Path"]
-			fName := formData["File Name"]
-			encryptedData, err := encryption.EncryptFile(fPath, password)
+			fPath := m.FormData["File Path"]
+			fName := m.FormData["File Name"]
+
+			encryptedData, err := encryption.EncryptFile(fPath, m.encryptionKey)
 			if err != nil {
 				return messages.SaveVaultResultMsg{
 					Err:     err,
 					Success: false,
 				}
 			}
+
 			metaData, err := files.GetFileMetadata(fPath)
 			if err != nil {
 				return messages.SaveVaultResultMsg{
@@ -135,6 +149,7 @@ func saveVault(
 					Success: false,
 				}
 			}
+
 			metaDataStruct, err := structpb.NewStruct(metaData)
 			if err != nil {
 				return messages.SaveVaultResultMsg{
@@ -151,10 +166,11 @@ func saveVault(
 				}
 			}
 
-			ctx = contextWithToken(token, ctx)
+			ctx = contextWithToken(ctx, m.Token)
+
 			slog.Info("SaveVault:uploadFile started", slog.String("file_name", fName))
 
-			err = uploadFile(ctx, client, fName, encryptedData, metaDataStruct)
+			err = uploadFile(ctx, m.client, fName, encryptedData, metaDataStruct)
 			if err != nil {
 				return messages.SaveVaultResultMsg{
 					Err:     fmt.Errorf("SaveVault:gRPC call failed: %w", err),
@@ -168,7 +184,6 @@ func saveVault(
 			}
 		}
 
-		// Convert to JSON
 		jsonData, err := json.Marshal(secretData)
 		if err != nil {
 			return messages.SaveVaultResultMsg{
@@ -177,7 +192,7 @@ func saveVault(
 			}
 		}
 
-		encryptedData, err := encryption.EncryptData(jsonData, password)
+		encryptedData, err := encryption.EncryptData(jsonData, m.encryptionKey)
 		if err != nil {
 			return messages.SaveVaultResultMsg{
 				Err:     fmt.Errorf("failed to encrypt data: %w", err),
@@ -187,12 +202,13 @@ func saveVault(
 
 		req := &proto.SaveVaultRequest{
 			Name:         title,
-			DataType:     string(sType),
+			DataType:     string(m.SecretType),
 			EcryptedData: encryptedData,
 		}
 
-		ctx = contextWithToken(token, ctx)
-		resp, err := client.SaveVault(ctx, req)
+		ctx = contextWithToken(ctx, m.Token)
+
+		resp, err := m.client.SaveVault(ctx, req)
 		if err != nil {
 			return messages.SaveVaultResultMsg{
 				Err:     fmt.Errorf("gRPC call failed: %w", err),
@@ -208,6 +224,8 @@ func saveVault(
 }
 
 func deactivateVaultGrpc(client proto.GophKeeperClient, token string, vault *proto.VaultItem) tea.Cmd {
+	const timeout = 3 * time.Second
+
 	return func() tea.Msg {
 		if vault == nil {
 			return messages.DeactivateVaultResultMsg{
@@ -219,10 +237,10 @@ func deactivateVaultGrpc(client proto.GophKeeperClient, token string, vault *pro
 			SecretId: vault.Id,
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		ctx = contextWithToken(token, ctx)
+		ctx = contextWithToken(ctx, token)
 
 		resp, err := client.DeactivateVault(ctx, req)
 		if err != nil {
@@ -240,9 +258,11 @@ func deactivateVaultGrpc(client proto.GophKeeperClient, token string, vault *pro
 }
 
 func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, encData []byte, metaData *structpb.Struct) error {
+	const chunkSize = 1024
+
 	byteReader := bytes.NewReader(encData)
 	reader := bufio.NewReader(byteReader)
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, chunkSize)
 
 	stream, err := c.UploadFile(ctx)
 	if err != nil {
@@ -254,6 +274,7 @@ func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, enc
 		FileName: fname,
 		Data:     &proto.UploadFileRequest_MetaData{MetaData: metaData},
 	}
+
 	err = stream.Send(req)
 	if err != nil {
 		slog.Warn("uploadFile:failed send metadata", slog.Any("error", err))
@@ -262,9 +283,10 @@ func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, enc
 
 	for {
 		n, err := reader.Read(buffer)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
+
 		if err != nil {
 			slog.Warn("uploadFile:cannot read chunk to buffer", slog.Any("error", err))
 			return err
@@ -293,24 +315,25 @@ func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, enc
 	return nil
 }
 
-// vaultItemWithData represents a fully reconstructed VaultItem
-type vaultItemWithData struct {
-	*proto.VaultItem
-	ReconstructedData []byte
-}
+// getVaultsStream retrieves vault items via streaming with automatic chunk reassembly.
+//
+//nolint:funlen // gRPC get items stream logic
+func getVaultsStream(client proto.GophKeeperClient, token, encryptionKey string) tea.Cmd {
+	const timeout = 15 * time.Second
 
-// getVaultsStream retrieves vault items via streaming with automatic chunk reassembly
-func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+
 		defer cancel()
+
 		slog.Info("GetVaultsStream:started")
-		ctx = contextWithToken(token, ctx)
+
+		ctx = contextWithToken(ctx, token)
 
 		stream, err := client.GetSteamedVaults(ctx, &proto.StreamVaultsRequest{})
 		if err != nil {
 			return messages.GetVaultsResultMsg{
-				Err:    fmt.Errorf("failed to create stream: %v", err),
+				Err:    fmt.Errorf("failed to create stream: %w", err),
 				Vaults: nil,
 			}
 		}
@@ -327,19 +350,20 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 			select {
 			case <-ctx.Done():
 				return messages.GetVaultsResultMsg{
-					Err:    fmt.Errorf("context canceled: %v", ctx.Err()),
+					Err:    fmt.Errorf("context canceled: %w", ctx.Err()),
 					Vaults: nil,
 				}
 			default:
 			}
 
 			response, err := stream.Recv()
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break // Stream completed successfully
 			}
+
 			if err != nil {
 				return messages.GetVaultsResultMsg{
-					Err:    fmt.Errorf("stream receive error: %v", err),
+					Err:    fmt.Errorf("stream receive error: %w", err),
 					Vaults: nil,
 				}
 			}
@@ -347,6 +371,7 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 			switch payload := response.Payload.(type) {
 			case *proto.StreamVaultsResponse_Metadata:
 				mu.Lock()
+
 				currentMeta = payload.Metadata
 
 				// If we have a completed item from previous metadata, add it to results
@@ -357,10 +382,12 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 					currentChunks = nil
 					currentItem = nil
 				}
+
 				mu.Unlock()
 
 			case *proto.StreamVaultsResponse_ItemChunk:
 				chunk := payload.ItemChunk
+
 				mu.Lock()
 
 				// Initialize new item if this is the first chunk
@@ -385,6 +412,7 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 					currentChunks = nil
 					currentItem = nil
 				}
+
 				mu.Unlock()
 			}
 		}
@@ -407,13 +435,14 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 			}
 
 			if len(vault.ReconstructedData) > 0 {
-				decryptedData, err := encryption.DecryptData(vault.ReconstructedData, password)
+				decryptedData, err := encryption.DecryptData(vault.ReconstructedData, encryptionKey)
 				if err != nil {
 					slog.Warn("GetVaultsStream:decryption error", slog.Any("error", err))
 				} else {
 					decryptedVault.EncryptedData = decryptedData
 				}
 			}
+
 			decryptedVaults = append(decryptedVaults, decryptedVault)
 		}
 
@@ -424,7 +453,10 @@ func getVaultsStream(client proto.GophKeeperClient, token, password string) tea.
 	}
 }
 
+// changePassword func sends gRPC request to the server to update user's password.
 func changePassword(client proto.GophKeeperClient, login, token, currentPassword, newPassword string) tea.Cmd {
+	const timeout = 3 * time.Second
+
 	return func() tea.Msg {
 		req := &proto.ChangePasswordRequest{
 			CurrentPassword: currentPassword,
@@ -432,21 +464,102 @@ func changePassword(client proto.GophKeeperClient, login, token, currentPassword
 			Login:           login,
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		ctx = contextWithToken(token, ctx)
+		ctx = contextWithToken(ctx, token)
+
 		resp, err := client.ChangePassword(ctx, req)
 		if err != nil {
 			return messages.ChangePasswordResultMsg{
-				Err:    fmt.Errorf("gRPC call failed: %w", err),
-				Sucess: false,
+				Err:     fmt.Errorf("gRPC call failed: %w", err),
+				Success: false,
 			}
 		}
 
 		return messages.ChangePasswordResultMsg{
-			Sucess: resp.Success,
-			Err:    nil,
+			Success: resp.Success,
+			Err:     nil,
+		}
+	}
+}
+
+// updateVault func sends gRPC request to the server to update specific vault record with new data.
+func updateVault(m *Model) tea.Cmd {
+	const timeout = 5 * time.Second
+
+	return func() tea.Msg {
+		if m.SelectedVault == nil {
+			return messages.UpdateVaultResultMsg{
+				Err: fmt.Errorf("no vault selected"),
+			}
+		}
+
+		var secretData map[string]string
+
+		title := m.FormData[m.CurrentForm.Fields[0].Name]
+
+		switch m.SelectedVault.DataType {
+		case secretTypeCredential:
+			secretData = map[string]string{
+				"service":  m.FormData["Service"],
+				"username": m.FormData["Username"],
+				"password": m.FormData["Password"],
+				"url":      m.FormData["URL"],
+			}
+		case secretTypeBankCard:
+			secretData = map[string]string{
+				"card_name":   m.FormData["Card Name"],
+				"card_number": m.FormData["Card Number"],
+				"expiry":      m.FormData["Expiry"],
+				"cvv":         m.FormData["CVV"],
+				"cardholder":  m.FormData["Cardholder"],
+			}
+		case secretTypeText:
+			secretData = map[string]string{
+				"title":   m.FormData["Title"],
+				"content": m.FormData["Content"],
+			}
+		}
+
+		jsonData, err := json.Marshal(secretData)
+		if err != nil {
+			return messages.UpdateVaultResultMsg{
+				Err:     fmt.Errorf("failed to marshal data: %w", err),
+				Success: false,
+			}
+		}
+
+		encryptedData, err := encryption.EncryptData(jsonData, m.encryptionKey)
+		if err != nil {
+			return messages.UpdateVaultResultMsg{
+				Err:     fmt.Errorf("failed to encrypt data: %w", err),
+				Success: false,
+			}
+		}
+
+		req := &proto.UpdateVaultRequest{
+			Id:            m.SelectedVault.Id,
+			EncryptedData: encryptedData,
+			Name:          title,
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		ctx = contextWithToken(ctx, m.Token)
+
+		resp, err := m.client.UpdateVault(ctx, req)
+		if err != nil {
+			return messages.UpdateVaultResultMsg{
+				Err:     fmt.Errorf("gRPC call failed: %w", err),
+				Success: false,
+			}
+		}
+
+		return messages.UpdateVaultResultMsg{
+			Success: resp.Success,
+			Err:     nil,
 		}
 	}
 }

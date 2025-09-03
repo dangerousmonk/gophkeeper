@@ -11,72 +11,83 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestVaultDeactivate(t *testing.T) {
+func TestVaultUpdate(t *testing.T) {
 	testUserID := 1
 	testVaultID := 123
+	newEncryptedData := []byte("\x246fc350aa50c4c02361a530e8e70112c7303f59402d541c3d82995340fa02a73ddafe")
 	repoError := errors.New("driver: bad connection")
 
 	cases := []struct {
 		name          string
 		userID        int
 		vaultID       int
+		vaultName     string
+		encryptedData []byte
 		buildRepoStub func(s *mocks.MockVaultRepository)
 		expectedError error
 		wantError     bool
 	}{
 		{
-			name:    "success",
-			userID:  testUserID,
-			vaultID: testVaultID,
+			name:          "success",
+			userID:        testUserID,
+			vaultID:       testVaultID,
+			vaultName:     "updated card",
+			encryptedData: newEncryptedData,
 			buildRepoStub: func(r *mocks.MockVaultRepository) {
 				r.EXPECT().
 					Get(gomock.Any(), testVaultID).Times(1).
 					Return(models.Vault{ID: testVaultID, UserID: testUserID, Name: "test", DataType: models.Credentials}, nil)
 				r.EXPECT().
-					Deactivate(gomock.Any(), testVaultID).Times(1).
+					Update(gomock.Any(), testVaultID, "updated card", newEncryptedData).Times(1).
 					Return(nil)
 			},
 			wantError:     false,
 			expectedError: nil,
 		},
 		{
-			name:    "repository_lookup_error",
-			userID:  testUserID,
-			vaultID: testVaultID,
+			name:          "repository_error",
+			userID:        testUserID,
+			vaultID:       testVaultID,
+			vaultName:     "updated card",
+			encryptedData: newEncryptedData,
 			buildRepoStub: func(r *mocks.MockVaultRepository) {
 				r.EXPECT().
 					Get(gomock.Any(), testVaultID).Times(1).
 					Return(models.Vault{}, repoError)
 				r.EXPECT().
-					Deactivate(gomock.Any(), testVaultID).Times(0)
+					Update(gomock.Any(), testVaultID, "updated card", newEncryptedData).Times(0)
 			},
 			wantError:     true,
 			expectedError: repoError,
 		},
 		{
-			name:    "owner_missmatch",
-			userID:  testUserID,
-			vaultID: testVaultID,
+			name:          "owner_missmatch",
+			userID:        testUserID,
+			vaultID:       testVaultID,
+			vaultName:     "updated card",
+			encryptedData: newEncryptedData,
 			buildRepoStub: func(r *mocks.MockVaultRepository) {
 				r.EXPECT().
 					Get(gomock.Any(), testVaultID).Times(1).
 					Return(models.Vault{ID: testVaultID, UserID: 99, Name: "test", DataType: models.Credentials}, nil)
 				r.EXPECT().
-					Deactivate(gomock.Any(), testVaultID).Times(0)
+					Update(gomock.Any(), testVaultID, "updated card", newEncryptedData).Times(0)
 			},
 			wantError:     true,
-			expectedError: ErrVaultOwnerMismatch,
+			expectedError: ErrVaultOwnerMismatchUpdate,
 		},
 		{
-			name:    "repository_deactivate_error",
-			userID:  testUserID,
-			vaultID: testVaultID,
+			name:          "update_error",
+			userID:        testUserID,
+			vaultID:       testVaultID,
+			vaultName:     "updated card",
+			encryptedData: newEncryptedData,
 			buildRepoStub: func(r *mocks.MockVaultRepository) {
 				r.EXPECT().
 					Get(gomock.Any(), testVaultID).Times(1).
 					Return(models.Vault{ID: testVaultID, UserID: testUserID, Name: "test", DataType: models.Credentials}, nil)
 				r.EXPECT().
-					Deactivate(gomock.Any(), testVaultID).Times(1).
+					Update(gomock.Any(), testVaultID, "updated card", newEncryptedData).Times(1).
 					Return(repoError)
 			},
 			wantError:     true,
@@ -95,7 +106,7 @@ func TestVaultDeactivate(t *testing.T) {
 			tc.buildRepoStub(repo)
 
 			s := NewVaultService(repo)
-			err := s.Deactivate(context.Background(), tc.userID, tc.vaultID)
+			err := s.Update(context.Background(), tc.vaultID, tc.userID, tc.vaultName, tc.encryptedData)
 
 			if tc.wantError {
 				require.Error(t, err)

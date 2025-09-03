@@ -9,7 +9,7 @@ type formDefinition struct {
 	Fields []formField
 }
 
-// Pre-defined form configurations
+// Pre-defined form configurations.
 var (
 	registrationForm = formDefinition{
 		Fields: []formField{

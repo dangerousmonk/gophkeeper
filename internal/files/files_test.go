@@ -216,9 +216,11 @@ func TestGetFileMetadataOK(t *testing.T) {
 				if err == nil {
 					t.Fatalf("Expected error but got none")
 				}
+
 				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
 					t.Errorf("Error message %q should contain %q", err.Error(), tt.errContains)
 				}
+
 				return
 			}
 
@@ -233,14 +235,17 @@ func TestGetFileMetadataOK(t *testing.T) {
 			if fileName, ok := got["file_name"].(string); !ok || fileName == "" {
 				t.Errorf("file_name should be non-empty string, got %v", got["file_name"])
 			}
+
 			if filePath, ok := got["file_path"].(string); !ok || filePath != tt.path {
 				t.Errorf("file_path should match input path, got %v, want %v", filePath, tt.path)
 			}
+
 			if fileSize, ok := got["file_size"].(float64); !ok {
 				t.Errorf("file_size should be float64, got %T", got["file_size"])
 			} else if fileSize < 0 {
 				t.Errorf("file_size should be non-negative, got %f", fileSize)
 			}
+
 			if fileType, ok := got["file_type"].(string); !ok {
 				t.Errorf("file_type should be string, got %T", fileType)
 			}
@@ -248,7 +253,7 @@ func TestGetFileMetadataOK(t *testing.T) {
 	}
 }
 
-// setupTestFiles creates various test files in the temporary directory
+// setupTestFiles creates various test files in the temporary directory.
 func setupTestFiles(t *testing.T, tmpDir string) map[string]string {
 	t.Helper()
 
@@ -262,7 +267,7 @@ func setupTestFiles(t *testing.T, tmpDir string) map[string]string {
 		"complexExt": filepath.Join(tmpDir, "config.env.json"),
 	}
 
-	if err := os.WriteFile(files["text"], []byte("hello world"), 0644); err != nil {
+	if err := os.WriteFile(files["text"], []byte("hello world"), 0o600); err != nil {
 		t.Fatalf("Failed to create text file: %v", err)
 	}
 
@@ -270,7 +275,8 @@ func setupTestFiles(t *testing.T, tmpDir string) map[string]string {
 		if k == "text" {
 			continue
 		}
-		if err := os.WriteFile(path, []byte{}, 0644); err != nil {
+
+		if err := os.WriteFile(path, []byte{}, 0o600); err != nil {
 			t.Fatalf("Failed to create file %s: %v", path, err)
 		}
 	}
@@ -302,6 +308,7 @@ func TestGetFileMetadataErrors(t *testing.T) {
 			if err == nil {
 				t.Fatal("Expected error but got none")
 			}
+
 			if !strings.Contains(err.Error(), tt.errContains) {
 				t.Errorf("Error message %q should contain %q", err.Error(), tt.errContains)
 			}

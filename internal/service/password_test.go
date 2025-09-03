@@ -16,7 +16,10 @@ func TestPassword(t *testing.T) {
 	testUser := models.User{ID: 1, Login: "guest", PasswordHash: "$2a$10$JlBjqiVSWraOUZ8SkHwnmO38Vfscr3bloe8eDlObLBFwRImhJjsbq", Active: true}
 	repoError := errors.New("driver: bad connection")
 	newPass := "guest-new"
-	newHash := "$2a$10$Jy14COgXoPSo1LbQJvNP0uXHZbpy0aEPwAlRnuU8oVTujwGfjnupW"
+
+	const newHash = "$2a$10$Jy14COgXoPSo1LbQJvNP0uXHZbpy0aEPwAlRnuU8oVTujwGfjnupW"
+
+	const passValidation = "password_validation"
 
 	cases := []struct {
 		name             string
@@ -86,7 +89,7 @@ func TestPassword(t *testing.T) {
 			expectedError: repoError,
 		},
 		{
-			name: "password_validation",
+			name: passValidation,
 			req:  &models.ChangePasswordRequest{Login: testUser.Login, CurrentPassword: "guest", NewPassword: ""},
 			buildRepoStub: func(r *pgm.MockUserRepository) {
 				r.EXPECT().
@@ -104,7 +107,7 @@ func TestPassword(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "password_validation",
+			name: passValidation,
 			req:  &models.ChangePasswordRequest{Login: testUser.Login, CurrentPassword: "guest", NewPassword: "1"},
 			buildRepoStub: func(r *pgm.MockUserRepository) {
 				r.EXPECT().
@@ -195,6 +198,7 @@ func TestPassword(t *testing.T) {
 
 			repo := pgm.NewMockUserRepository(ctrl)
 			encryptor := encryptm.NewMockPasswordEncryptor(ctrl)
+
 			tc.buildRepoStub(repo)
 			tc.buildEncryptStub(encryptor)
 
@@ -203,14 +207,14 @@ func TestPassword(t *testing.T) {
 
 			if tc.wantError {
 				require.Error(t, err)
-				if tc.name != "password_validation" {
+
+				if tc.name != passValidation {
 					require.ErrorIs(t, err, tc.expectedError)
 				}
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, resp.Success, true)
 			}
-
 		})
 	}
 }

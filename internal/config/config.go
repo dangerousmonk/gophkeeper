@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -12,12 +13,13 @@ import (
 // 1. Flags
 // 2. Environment variables
 // 3. Config file
-// 4. Default values
+// 4. Default values.
 func LoadConfig(configPath string) (*Config, error) {
 	v := viper.New()
 	v.SetConfigFile(".env")
+
 	if err := v.ReadInConfig(); err != nil {
-		fmt.Printf("LoadConfig:error=%v", err)
+		log.Printf("LoadConfig: failed to read configuration: %v", err)
 	}
 
 	// Set default values
@@ -27,11 +29,14 @@ func LoadConfig(configPath string) (*Config, error) {
 	bindEnv(v)
 
 	// Bind command line flags
-	bindFlags(v)
+	if err := bindFlags(v); err != nil {
+		return nil, fmt.Errorf("failed to bind flags: %w", err)
+	}
 
 	// Read config file if provided
 	if configPath != "" {
 		v.SetConfigFile(configPath)
+
 		if err := v.ReadInConfig(); err != nil {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
@@ -42,6 +47,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
+
 	return &cfg, nil
 }
 
@@ -69,19 +75,35 @@ func bindEnv(v *viper.Viper) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 }
 
-func bindFlags(v *viper.Viper) {
-	var _ *string = pflag.StringP("dsn", "d", "", "Database DSN")
-	var _ *string = pflag.StringP("db_user", "u", "", "Database user name")
-	var _ *string = pflag.StringP("db_name", "n", "", "Database name")
-	var _ *string = pflag.StringP("db_pass", "p", "", "Database password")
-	var _ *string = pflag.StringP("env", "e", "", "Environment to use")
+func bindFlags(v *viper.Viper) error {
+	_ = pflag.StringP("dsn", "d", "", "Database DSN")
+
+	_ = pflag.StringP("db_user", "u", "", "Database user name")
+
+	_ = pflag.StringP("db_name", "n", "", "Database name")
+
+	_ = pflag.StringP("db_pass", "p", "", "Database password")
+
+	_ = pflag.StringP("env", "e", "", "Environment to use")
 
 	// Parse flags
 	pflag.Parse()
 
-	// Bind flags to viper
-	v.BindPFlag("DB_USER", pflag.Lookup("db_user"))
-	v.BindPFlag("DB_NAME", pflag.Lookup("db_name"))
-	v.BindPFlag("DB_PASSWORD", pflag.Lookup("db_pass"))
-	v.BindPFlag("ENV", pflag.Lookup("env"))
+	if err := v.BindPFlag("DB_USER", pflag.Lookup("db_user")); err != nil {
+		return fmt.Errorf("failed to bind DB_USER flag: %w", err)
+	}
+
+	if err := v.BindPFlag("DB_NAME", pflag.Lookup("db_name")); err != nil {
+		return fmt.Errorf("failed to bind DB_NAME flag: %w", err)
+	}
+
+	if err := v.BindPFlag("DB_PASSWORD", pflag.Lookup("db_pass")); err != nil {
+		return fmt.Errorf("failed to bind DB_PASSWORD flag: %w", err)
+	}
+
+	if err := v.BindPFlag("ENV", pflag.Lookup("env")); err != nil {
+		return fmt.Errorf("failed to bind ENV flag: %w", err)
+	}
+
+	return nil
 }

@@ -17,12 +17,12 @@ func NewVaultService(repo postgres.VaultRepository) *VaultService {
 	}
 }
 
-// VaultHandler defines the contract for vault operations
+// VaultHandler defines the contract for vault operations.
 type VaultHandler interface {
 	// Save is used to insert new Vault record
 	Save(ctx context.Context, req *models.Vault) (*models.Vault, error)
 	// Deactivate is used to soft delete specific vault record
-	Deactivate(ctx context.Context, userID int, id int) error
+	Deactivate(ctx context.Context, userID, id int) error
 	// GetByUser retrives all active vault records saved by specific user
 	GetByUser(ctx context.Context, userID int) ([]models.Vault, error)
 }

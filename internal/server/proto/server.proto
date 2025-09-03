@@ -4,7 +4,6 @@ package server;
 
 option go_package = "internal/server/proto";
 
-import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 
 
@@ -25,6 +24,8 @@ service GophKeeper {
   rpc UploadFile (stream UploadFileRequest) returns (VaultItem);
   // Retrieve all vaults saved by user using streamed response
   rpc GetSteamedVaults(StreamVaultsRequest) returns (stream StreamVaultsResponse);
+  // UpdateVault is used to update specific vault record with new data
+  rpc UpdateVault(UpdateVaultRequest) returns (UpdateVaultResponse);
 }
 
 // Messages for service health
@@ -136,4 +137,18 @@ message UploadFileRequest {
         bytes chunk_data = 2;
         google.protobuf.Struct meta_data = 3;
   };
+}
+
+
+// Message for updating vault record
+message UpdateVaultRequest {
+    int32 id = 1;
+    string name = 2;
+    bytes encrypted_data = 3;
+    google.protobuf.Struct meta_data = 4;
+}
+
+message UpdateVaultResponse {
+    bool success = 1;
+    string message = 2;
 }
