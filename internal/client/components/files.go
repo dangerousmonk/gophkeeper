@@ -11,6 +11,8 @@ import (
 )
 
 func (m *Model) downloadFile(path string) tea.Cmd {
+	const fileMode = 0o600 // Read and write for owner only
+
 	return func() tea.Msg {
 		vault := m.SelectedVault
 		if vault == nil || vault.DataType != secretTypeBinary {
@@ -22,7 +24,10 @@ func (m *Model) downloadFile(path string) tea.Cmd {
 
 		// Create directory if it doesn't exist
 		dir := filepath.Dir(path)
-		if err := os.MkdirAll(dir, 0755); err != nil {
+
+		const fMode = 0o755
+
+		if err := os.MkdirAll(dir, fMode); err != nil {
 			return messages.DownloadResultMsg{
 				Err:     fmt.Errorf("failed to create directory: %w", err),
 				Success: false,
@@ -32,10 +37,12 @@ func (m *Model) downloadFile(path string) tea.Cmd {
 		// Check if file already exists and create unique name
 		finalPath := path
 		counter := 1
+
 		for {
 			if _, err := os.Stat(finalPath); os.IsNotExist(err) {
 				break
 			}
+
 			ext := filepath.Ext(path)
 			name := path[:len(path)-len(ext)]
 			finalPath = fmt.Sprintf("%s_%d%s", name, counter, ext)
@@ -43,7 +50,7 @@ func (m *Model) downloadFile(path string) tea.Cmd {
 		}
 
 		// Write file to disk
-		if err := os.WriteFile(finalPath, m.SelectedVault.EncryptedData, 0644); err != nil {
+		if err := os.WriteFile(finalPath, m.SelectedVault.EncryptedData, fileMode); err != nil {
 			return messages.DownloadResultMsg{
 				Err:     fmt.Errorf("failed to write file: %w", err),
 				Success: false,
@@ -60,11 +67,12 @@ func (m *Model) downloadFile(path string) tea.Cmd {
 func getDefaultDownloadPath(vault *proto.VaultItem) string {
 	fileName := "downloaded_file"
 	if vault.MetaData == nil || vault.MetaData.Fields == nil {
-		return filepath.Join("./downloads/", fileName)
+		return filepath.Join(".", "downloads", fileName)
 	}
 
 	if nameVal, exists := vault.MetaData.Fields["file_name"]; exists {
 		fileName = nameVal.GetStringValue()
 	}
-	return filepath.Join("./downloads/", fileName)
+
+	return filepath.Join(".", "downloads", fileName)
 }

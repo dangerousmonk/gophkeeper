@@ -12,19 +12,19 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-// Encryption constants
+// Encryption constants.
 const (
 	saltSize         = 16
 	keySize          = 32 // AES-256
 	pbkdf2Iterations = 4096
 )
 
-// keyFromPassword creates an encryption key from the user's password
+// keyFromPassword creates an encryption key from the user's password.
 func keyFromPassword(password string, salt []byte) []byte {
 	return pbkdf2.Key([]byte(password), salt, pbkdf2Iterations, keySize, sha256.New)
 }
 
-// EncryptData encrypts data using AES-GCM
+// EncryptData encrypts data using AES-GCM.
 func EncryptData(data []byte, password string) ([]byte, error) {
 	salt := make([]byte, saltSize)
 	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
@@ -32,6 +32,7 @@ func EncryptData(data []byte, password string) ([]byte, error) {
 	}
 
 	key := keyFromPassword(password, salt)
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
@@ -46,6 +47,7 @@ func EncryptData(data []byte, password string) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
+
 	ciphertext := gcm.Seal(nil, nonce, data, nil)
 
 	// [salt:16][nonce:12][ciphertext:variable]
@@ -57,11 +59,12 @@ func EncryptData(data []byte, password string) ([]byte, error) {
 	return encryptedData, nil
 }
 
-// DecryptData decrypts data by using user password and stored encryptedData
+// DecryptData decrypts data by using user password and stored encryptedData.
 func DecryptData(encryptedData []byte, password string) ([]byte, error) {
 	if len(encryptedData) < saltSize {
 		return nil, fmt.Errorf("invalid encrypted data: too short for salt")
 	}
+
 	salt := encryptedData[:saltSize]
 	remainingData := encryptedData[saltSize:]
 
@@ -93,8 +96,8 @@ func DecryptData(encryptedData []byte, password string) ([]byte, error) {
 	return plaintext, nil
 }
 
-// EncryptFile encrypts file by using user password
-func EncryptFile(path string, password string) ([]byte, error) {
+// EncryptFile encrypts file by using user password.
+func EncryptFile(path, password string) ([]byte, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)

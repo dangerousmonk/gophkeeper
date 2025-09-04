@@ -103,7 +103,6 @@ func TestVaultDeactivate(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-
 		})
 	}
 }

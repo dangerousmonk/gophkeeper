@@ -6,12 +6,13 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/dangerousmonk/gophkeeper/internal/auth"
 	"github.com/dangerousmonk/gophkeeper/internal/config"
 	"github.com/dangerousmonk/gophkeeper/internal/encryption"
+	"github.com/dangerousmonk/gophkeeper/internal/logger"
 	"github.com/dangerousmonk/gophkeeper/internal/postgres"
 	"github.com/dangerousmonk/gophkeeper/internal/server"
 	"github.com/dangerousmonk/gophkeeper/internal/service"
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
 )
 
 func main() {
@@ -20,40 +21,44 @@ func main() {
 		log.Fatalf("main:LoadConfig failed error=%v", err)
 	}
 
-	logger := utils.InitLogger(cfg.Environment, os.Stdout)
-	slog.SetDefault(logger)
+	appLog := logger.InitLogger(cfg.Environment, os.Stdout)
+	slog.SetDefault(appLog)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dsn := postgres.GetDSN(cfg)
+
 	db, err := postgres.InitDB(ctx, dsn)
 	if err != nil {
-		logger.Error("main:InitDB failed", slog.Any("error", err))
-		os.Exit(1)
+		appLog.Error("main:InitDB failed", slog.Any("error", err))
+		return
 	}
+
 	defer db.Close()
 
 	err = postgres.ApplyMigrations(dsn)
 	if err != nil {
-		logger.Error("main:ApplyMigrations failed", slog.Any("error", err))
-		os.Exit(1)
+		appLog.Error("main:ApplyMigrations failed", slog.Any("error", err))
+		return
 	}
 
-	jwtAuthenticator, err := utils.NewJWTAuthenticator(cfg.JWTSecret)
+	jwtAuthenticator, err := auth.NewJWTAuthenticator(cfg.JWTSecret)
 	if err != nil {
-		logger.Error("main:NewJWTAuthenticator failed", slog.Any("error", err))
-		os.Exit(1)
+		appLog.Error("main:NewJWTAuthenticator failed", slog.Any("error", err))
+		return
 	}
 
 	repos := postgres.NewPostgresRepositories(db)
 	passEncryptor := encryption.NewPaswordEncryptor()
 	userService := service.NewUserService(repos.User, passEncryptor)
 	vaultService := service.NewVaultService(repos.Vault)
-	app := server.NewGophKeeperApp(cfg, logger, userService, vaultService, &jwtAuthenticator)
+
+	app := server.NewGophKeeperApp(cfg, appLog, userService, vaultService, jwtAuthenticator)
+
 	err = app.Start()
 	if err != nil {
-		logger.Error("main:failed start application", slog.Any("error", err))
-		os.Exit(1)
+		appLog.Error("main:failed start application", slog.Any("error", err))
+		return
 	}
 }

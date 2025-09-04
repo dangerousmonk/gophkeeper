@@ -23,10 +23,3 @@ type Vault struct {
 	UpdatedAt     time.Time      `json:"updated_at"`
 	Active        bool           `json:"active"`
 }
-
-type InsertVaultRequest struct {
-	Name          string   `json:"name" validate:"required,min=3,max=150"`
-	DataType      DataType `json:"data_type" validate:"required"`
-	EncryptedData string   `json:"encrypted_data"`
-	MetaData      string   `json:"meta_data"`
-}

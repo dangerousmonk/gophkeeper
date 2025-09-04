@@ -111,6 +111,7 @@ func TestLoadConfig(t *testing.T) {
 			for k, v := range tt.envVars {
 				os.Setenv(k, v)
 			}
+
 			defer func() {
 				for k := range tt.envVars {
 					os.Unsetenv(k)

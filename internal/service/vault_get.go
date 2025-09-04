@@ -13,5 +13,6 @@ func (s *VaultService) GetByUser(ctx context.Context, userID int) ([]models.Vaul
 		slog.Warn("VaultService:GetByUser", slog.Any("error", err))
 		return []models.Vault{}, err
 	}
+
 	return vaults, nil
 }

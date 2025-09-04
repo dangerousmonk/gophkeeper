@@ -3,11 +3,14 @@ package components
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dangerousmonk/gophkeeper/internal/dates"
+	"github.com/dangerousmonk/gophkeeper/internal/files"
 	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
+	str "github.com/dangerousmonk/gophkeeper/internal/strings"
 	"github.com/dangerousmonk/gophkeeper/internal/version"
 )
 
@@ -33,6 +36,7 @@ func (m *Model) renderStatusMessage() string {
 			Foreground(lipgloss.Color("#7D56F4")).
 			BorderForeground(lipgloss.Color("#7D56F4"))
 	}
+
 	return statusStyle.Render(m.Message)
 }
 
@@ -47,8 +51,20 @@ func (m *Model) renderError() string {
 	return errorStyle.Render(fmt.Sprintf("Error: %s\n\nPress 'q' or 'esc' to continue", m.Err.Error()))
 }
 
+// renderFileContent is a helper function to render the file content.
+func renderFileContent(fileStyle lipgloss.Style, fileName, fileType string, fileSize int64, filePath string) string {
+	fileContent := fmt.Sprintf("%s File Name: %s\n", fileIcon, fileName)
+	fileContent += fmt.Sprintf("%s File Type: %s\n", folderIcon, fileType)
+	fileContent += fmt.Sprintf("%s File Size: %s\n", storageIcon, files.FormatFileSize(fileSize))
+	fileContent += fmt.Sprintf("%s Original Path: %s\n", locationIcon, filePath)
+	fileContent += fmt.Sprintf("%s Storage: Encrypted binary data", lockIcon)
+
+	return fileStyle.Render(fileContent)
+}
+
 func (m *Model) renderAuthMenu() string {
 	var b strings.Builder
+
 	title := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#7D56F4")).
@@ -74,6 +90,7 @@ func (m *Model) renderAuthMenu() string {
 		} else {
 			option = "  " + option
 		}
+
 		b.WriteString(style.Render(option) + "\n")
 	}
 
@@ -142,7 +159,7 @@ func (m *Model) renderAuthForm(title string, fields []string) string {
 	}
 
 	// Submit button
-	submitText := "Submit"
+	var submitText string
 	if title == "User Registration" {
 		submitText = "Register"
 	} else {
@@ -205,6 +222,7 @@ func (m *Model) renderMainMenu() string {
 		} else {
 			option = "  " + option
 		}
+
 		b.WriteString(style.Render(option) + "\n")
 	}
 
@@ -247,10 +265,12 @@ func (m *Model) renderSecretTypeMenu() string {
 		} else {
 			option = "  " + option
 		}
+
 		b.WriteString(style.Render(option) + "\n")
 	}
 
 	b.WriteString("\n")
+
 	helpText := lipgloss.NewStyle().
 		Faint(true).
 		Foreground(lipgloss.Color("#6B7280")).
@@ -264,6 +284,7 @@ func (m *Model) renderSaveSecretForm() string {
 	var b strings.Builder
 
 	title := "Save Secret"
+
 	switch m.SecretType {
 	case secretTypeCredential:
 		title = credentialsIcon + " Save Login/Password"
@@ -377,6 +398,7 @@ func (m *Model) renderSecretData(vault *proto.VaultItem) string {
 	}
 
 	b.WriteString(dataStyle.Render(dataContent.String()))
+
 	return b.String()
 }
 
@@ -417,17 +439,20 @@ func (m *Model) renderSecretsListView() string {
 		Render("📋 Your Secrets")
 	b.WriteString(title + "\n\n")
 
-	if m.Loading {
+	switch {
+	case m.Loading:
 		loadingStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#7D56F4")).
 			Italic(true)
 		b.WriteString(loadingStyle.Render(m.Message) + "\n\n")
-	} else if len(m.Vaults) == 0 {
+
+	case len(m.Vaults) == 0:
 		emptyStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#6B7280")).
 			Italic(true)
 		b.WriteString(emptyStyle.Render("No secrets found.") + "\n\n")
-	} else {
+
+	default:
 		for i, vault := range m.Vaults {
 			secretStyle := lipgloss.NewStyle().
 				Padding(0, 1).
@@ -443,10 +468,10 @@ func (m *Model) renderSecretsListView() string {
 			icon := getIcon(vault.DataType)
 			displayText := fmt.Sprintf("%s %s | %s | %s %s",
 				icon,
-				utils.TruncateString(vault.Name, 18),
+				str.TruncateString(vault.Name, 18),
 				vault.DataType,
 				timeIcon,
-				utils.FormatDate(vault.CreatedAt),
+				dates.FormatDate(vault.CreatedAt),
 			)
 
 			b.WriteString(secretStyle.Render(displayText) + "\n")
@@ -460,13 +485,15 @@ func (m *Model) renderSecretsListView() string {
 		b.WriteString(m.renderStatusMessage() + "\n\n")
 	}
 
-	// Help text
-	helpText := ""
-	if len(m.Vaults) > 0 && !m.Loading {
+	// Help text.
+	var helpText string
+
+	switch {
+	case len(m.Vaults) > 0 && !m.Loading:
 		helpText = "↑↓: Select • Enter: View Details • Esc: Back to Menu"
-	} else if m.Loading {
-		helpText = "Loading secrets..."
-	} else {
+	case m.Loading:
+		helpText = loadMsg
+	default:
 		helpText = "Esc: Back to Menu"
 	}
 
@@ -479,8 +506,6 @@ func (m *Model) renderSecretsListView() string {
 }
 
 func renderFileDetails(vault *proto.VaultItem) string {
-	var b strings.Builder
-
 	fileStyle := lipgloss.NewStyle().
 		Padding(1).
 		BorderStyle(lipgloss.RoundedBorder()).
@@ -488,40 +513,41 @@ func renderFileDetails(vault *proto.VaultItem) string {
 		Width(70)
 
 	// Extract file metadata
-	fileName := "Unknown"
-	filePath := "Unknown"
+	const unknown = "Unknown"
+
+	// Set default values
+	fileName := unknown
+	filePath := unknown
 	fileSize := int64(0)
-	fileType := "Unknown"
+	fileType := unknown
 
-	if vault.MetaData != nil && vault.MetaData.Fields != nil {
-		fields := vault.MetaData.Fields
-
-		if nameVal, exists := fields["file_name"]; exists {
-			fileName = nameVal.GetStringValue()
-		}
-
-		if pathVal, exists := fields["file_path"]; exists {
-			filePath = pathVal.GetStringValue()
-		}
-
-		if sizeVal, exists := fields["file_size"]; exists {
-			fileSize = int64(sizeVal.GetNumberValue())
-		}
-
-		if typeVal, exists := fields["file_type"]; exists {
-			fileType = typeVal.GetStringValue()
-		}
+	// Early return if no metadata
+	if vault.MetaData == nil || vault.MetaData.Fields == nil {
+		return renderFileContent(fileStyle, fileName, fileType, fileSize, filePath)
 	}
 
-	fileContent := fmt.Sprintf("%s File Name: %s\n", fileIcon, fileName)
-	fileContent += fmt.Sprintf("%s File Type: %s\n", folderIcon, fileType)
-	fileContent += fmt.Sprintf("%s File Size: %s\n", storageIcon, utils.FormatFileSize(fileSize))
-	fileContent += fmt.Sprintf("%s Original Path: %s\n", locationIcon, filePath)
-	fileContent += fmt.Sprintf("%s Storage: Encrypted binary data", lockIcon)
-	b.WriteString(fileStyle.Render(fileContent))
-	return b.String()
+	fields := vault.MetaData.Fields
+
+	if nameVal, exists := fields["file_name"]; exists {
+		fileName = nameVal.GetStringValue()
+	}
+
+	if pathVal, exists := fields["file_path"]; exists {
+		filePath = pathVal.GetStringValue()
+	}
+
+	if sizeVal, exists := fields["file_size"]; exists {
+		fileSize = int64(sizeVal.GetNumberValue())
+	}
+
+	if typeVal, exists := fields["file_type"]; exists {
+		fileType = typeVal.GetStringValue()
+	}
+
+	return renderFileContent(fileStyle, fileName, fileType, fileSize, filePath)
 }
 
+//nolint:funlen // bubbletea render
 func (m Model) renderSecretDetailView() string {
 	var b strings.Builder
 
@@ -548,8 +574,8 @@ func (m Model) renderSecretDetailView() string {
 	infoContent := fmt.Sprintf("%s Name: %s\n", folderIcon, vault.Name)
 	infoContent += fmt.Sprintf("%s Type: %s\n", lockIcon, vault.DataType)
 	infoContent += fmt.Sprintf("%s ID: %d\n", idIcon, vault.Id)
-	infoContent += fmt.Sprintf("%s Created: %s\n", timeIcon, utils.FormatDate(vault.CreatedAt))
-	infoContent += fmt.Sprintf("%s Updated: %s\n", calendarIcon, utils.FormatDate(vault.UpdatedAt))
+	infoContent += fmt.Sprintf("%s Created: %s\n", timeIcon, dates.FormatDate(vault.CreatedAt))
+	infoContent += fmt.Sprintf("%s Updated: %s\n", calendarIcon, dates.FormatDate(vault.UpdatedAt))
 	infoContent += fmt.Sprintf("%s Active: %v\n", checkMarkIcon, vault.Active)
 	infoContent += fmt.Sprintf("%s Version: %d", versionIcon, vault.Version)
 
@@ -559,12 +585,10 @@ func (m Model) renderSecretDetailView() string {
 	if vault.DataType == secretTypeBinary {
 		fileDetails := renderFileDetails(vault)
 		b.WriteString(fileDetails + "\n\n")
-	} else {
+	} else if len(vault.EncryptedData) > 0 {
 		// Try to decode and display the secret data if it's in a known format
-		if len(vault.EncryptedData) > 0 {
-			secretData := m.renderSecretData(vault)
-			b.WriteString(secretData + "\n\n")
-		}
+		secretData := m.renderSecretData(vault)
+		b.WriteString(secretData + "\n\n")
 	}
 
 	// Button row with appropriate buttons
@@ -573,6 +597,8 @@ func (m Model) renderSecretDetailView() string {
 		Align(lipgloss.Center)
 
 	var buttons []string
+
+	slog.Info("renderSecretDetailView", slog.Int("focus", m.Focus))
 
 	// Go Back button
 	backButtonStyle := lipgloss.NewStyle().
@@ -589,7 +615,28 @@ func (m Model) renderSecretDetailView() string {
 			Foreground(lipgloss.Color("#FFFFFF")).
 			Bold(true)
 	}
+
 	buttons = append(buttons, backButtonStyle.Render("← Back"))
+
+	// Update button (for updatable types)
+	updBtnStyle := lipgloss.NewStyle().
+		Width(15).
+		Height(1).
+		Padding(0, 2).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#FBBF24")).
+		Align(lipgloss.Center)
+
+	if m.Focus == 1 {
+		updBtnStyle = updBtnStyle.
+			Background(lipgloss.Color("#7D56F4")).
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Bold(true)
+	}
+
+	if isUpdatable(secretType(vault.DataType)) {
+		buttons = append(buttons, updBtnStyle.Render(textIcon+" Update"))
+	}
 
 	// Download button (only for binary/files)
 	if vault.DataType == secretTypeBinary {
@@ -610,13 +657,11 @@ func (m Model) renderSecretDetailView() string {
 			downloadButtonStyle = downloadButtonStyle.
 				Foreground(lipgloss.Color("#10B981"))
 		}
+
 		buttons = append(buttons, downloadButtonStyle.Render(downLoadingIcon+" Download"))
 	}
 
-	deleteButtonIndex := 1
-	if vault.DataType == secretTypeBinary {
-		deleteButtonIndex = 2 // Back(0), Download(1), Delete(2)
-	}
+	deleteButtonIndex := 2 // Back(0), Download(1), Delete(2) || // Back(0), Update(1), Delete(2)
 
 	deleteButtonStyle := lipgloss.NewStyle().
 		Width(15).
@@ -635,17 +680,11 @@ func (m Model) renderSecretDetailView() string {
 		deleteButtonStyle = deleteButtonStyle.
 			Foreground(lipgloss.Color("#FF6B6B"))
 	}
+
 	buttons = append(buttons, deleteButtonStyle.Render(binIcon+" "+" Delete"))
 
 	// Join buttons with appropriate spacing
-	var buttonRow string
-	if vault.DataType == secretTypeBinary {
-		buttonRow = lipgloss.JoinHorizontal(lipgloss.Center,
-			buttons[0], "   ", buttons[1], "   ", buttons[2])
-	} else {
-		buttonRow = lipgloss.JoinHorizontal(lipgloss.Center,
-			buttons[0], "   ", buttons[1])
-	}
+	buttonRow := lipgloss.JoinHorizontal(lipgloss.Center, buttons[0], "   ", buttons[1], "   ", buttons[2])
 	b.WriteString(buttonRowStyle.Render(buttonRow) + "\n\n")
 
 	if m.Message != "" {
@@ -661,6 +700,7 @@ func (m Model) renderSecretDetailView() string {
 	return b.String()
 }
 
+//nolint:funlen // bubbletea render
 func (m Model) renderDownloadLocationView() string {
 	var b strings.Builder
 
@@ -755,6 +795,8 @@ func (m Model) renderDownloadLocationView() string {
 }
 
 func (m *Model) renderChangePasswordForm() string {
+	const width = 52
+
 	var b strings.Builder
 
 	title := lipgloss.NewStyle().
@@ -801,7 +843,7 @@ func (m *Model) renderChangePasswordForm() string {
 
 	// Submit button
 	buttonStyle := lipgloss.NewStyle().
-		Width(52). // Match form width
+		Width(width). // Match form width
 		Height(1).
 		Padding(0, 2).
 		Border(lipgloss.RoundedBorder()).
@@ -829,4 +871,48 @@ func (m *Model) renderChangePasswordForm() string {
 	b.WriteString(helpText)
 
 	return b.String()
+}
+
+// initializeUpdateForm fills current data for selected vault on update button click.
+func (m *Model) initializeUpdateForm() {
+	vault := m.SelectedVault
+	if vault == nil {
+		return
+	}
+
+	// Parse the decrypted data based on type
+	var formData map[string]string
+	if err := json.Unmarshal(m.SelectedVault.EncryptedData, &formData); err != nil {
+		m.Message = "Failed to parse secret data: " + err.Error()
+		return
+	}
+
+	// Set up the appropriate form based on data type
+	switch vault.DataType {
+	case secretTypeCredential:
+		m.CurrentForm = &credentialsForm
+		m.FormData = map[string]string{
+			"Service":  formData["service"],
+			"Username": formData["username"],
+			"Password": formData["password"],
+			"URL":      formData["url"],
+		}
+	case secretTypeBankCard:
+		m.CurrentForm = &bankCardForm
+		m.FormData = map[string]string{
+			"Card Name":   formData["card_name"],
+			"Card Number": formData["card_number"],
+			"Expiry":      formData["expiry"],
+			"CVV":         formData["cvv"],
+			"Cardholder":  formData["cardholder"],
+		}
+	case secretTypeText:
+		m.CurrentForm = &textForm
+		m.FormData = map[string]string{
+			"Title":   formData["title"],
+			"Content": formData["content"],
+		}
+	}
+
+	m.Focus = 0
 }

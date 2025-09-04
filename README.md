@@ -6,6 +6,7 @@
 SERVER_HOST=localhost
 SERVER_PORT=8099
 JWT_SECRET=077e4fb1c8fd41ba8a99a480a8e0ee52
+ENCRYPTION_KEY=65858e0f570b4ffb82d9aa0994f099b4
 
 # database
 DB_NAME=gophkeeper_db
@@ -30,5 +31,6 @@ $ make build-client         # Build client binary
 $ make test                 # Run tests(without cache)
 $ make test-coverage        # Run tests with coverage
 $ make coverage-percent     # See output coverage percent
+$ make lint                 # Run linter
 $ make help                 # Read help message
 ```

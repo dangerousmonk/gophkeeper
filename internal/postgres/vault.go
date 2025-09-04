@@ -17,9 +17,11 @@ type VaultRepository interface {
 	Deactivate(ctx context.Context, id int) error
 	// Get retrives specific vault record by id
 	Get(ctx context.Context, id int) (models.Vault, error)
+	// Update is used to update specific vault record
+	Update(ctx context.Context, id int, name string, encryptedData []byte) error
 }
 
-// vaultRepository implements VaultRepository
+// vaultRepository implements VaultRepository.
 type vaultRepository struct {
 	db *sql.DB
 }

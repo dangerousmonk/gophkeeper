@@ -113,6 +113,7 @@ func TestRegister(t *testing.T) {
 
 			repo := pgm.NewMockUserRepository(ctrl)
 			encryptor := encryptm.NewMockPasswordEncryptor(ctrl)
+
 			tc.buildRepoStub(repo)
 			tc.buildEncryptStub(encryptor)
 
@@ -121,6 +122,7 @@ func TestRegister(t *testing.T) {
 
 			if tc.wantError {
 				require.Error(t, err)
+
 				if tc.name != "password_validation" {
 					require.ErrorIs(t, err, tc.expectedError)
 				}
@@ -129,7 +131,6 @@ func TestRegister(t *testing.T) {
 				require.Equal(t, resp.Success, true)
 				require.Equal(t, resp.Login, tc.req.Login)
 			}
-
 		})
 	}
 }

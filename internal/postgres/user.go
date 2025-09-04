@@ -19,7 +19,7 @@ type UserRepository interface {
 	UpdatePassword(ctx context.Context, userID int, password string) error
 }
 
-// userRepository implements UserRepository
+// userRepository implements UserRepository.
 type userRepository struct {
 	db *sql.DB
 }

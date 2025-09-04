@@ -1,6 +1,6 @@
 package components
 
-// // appState represents the current state of the application
+// // appState represents the current state of the application.
 type appState int
 
 const (
@@ -15,9 +15,10 @@ const (
 	stateFileDownload
 	stateDownloadLocation
 	stateChangePassword
+	stateUpdateSecret
 )
 
-// secretType represents different types of secret data
+// secretType represents different types of secret data.
 type secretType string
 
 const (
@@ -27,7 +28,7 @@ const (
 	secretTypeBinary     = "binary"
 )
 
-// Keyboard clicks
+// Keyboard clicks.
 const (
 	enter     = "enter"
 	esc       = "esc"
@@ -42,7 +43,7 @@ const (
 	backspace = "backspace"
 )
 
-// Icons
+// Icons.
 const (
 	fileIcon        = "📄"
 	credentialsIcon = "🔐"
@@ -69,6 +70,10 @@ const (
 	binIcon         = "🗑️"
 )
 
+const (
+	loadMsg = "Loading secrets..."
+)
+
 func getIcon(vType string) string {
 	switch vType {
 	case "file":
@@ -84,7 +89,7 @@ func getIcon(vType string) string {
 	}
 }
 
-// Checks whether certain app state can handle text input in forms
+// Checks whether certain app state can handle text input in forms.
 func isForTextInput(s appState) bool {
 	switch s {
 	case
@@ -92,14 +97,15 @@ func isForTextInput(s appState) bool {
 		stateLogin,
 		stateSaveSecret,
 		stateChangePassword,
-		stateDownloadLocation:
+		stateDownloadLocation,
+		stateUpdateSecret:
 		return true
 	default:
 		return false
 	}
 }
 
-// Checks whether user can quit application from certain app state on ctrl+c/q
+// Checks whether user can quit application from certain app state on ctrl+c/q.
 func isForExitOnCtrl(s appState) bool {
 	switch s {
 	case
@@ -114,20 +120,29 @@ func isForExitOnCtrl(s appState) bool {
 	}
 }
 
-// getPreviousState return previous possible state for AppState
+// getPreviousState return previous possible state for AppState.
 func getPreviousState(s appState) appState {
 	switch s {
-	case
-		stateRegister,
-		stateLogin:
+	case stateRegister, stateLogin:
 		return stateStartMenu
-	case
-		stateSaveSecret,
-		stateSecretTypeMenu:
+	case stateSaveSecret, stateSecretTypeMenu:
 		return stateMainMenu
 	case stateViewSecretDetail:
 		return stateViewSecrets
 	default:
 		return stateMainMenu
+	}
+}
+
+func isUpdatable(t secretType) bool {
+	switch t {
+	case secretTypeCredential:
+		return true
+	case secretTypeBankCard:
+		return true
+	case secretTypeText:
+		return true
+	default:
+		return false
 	}
 }

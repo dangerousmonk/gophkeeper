@@ -6,6 +6,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+const (
+	fillMsg = "Please fill in all fields"
+)
+
 func (m *Model) handleStartMenuNavigation(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case enter:
@@ -28,6 +32,7 @@ func (m *Model) handleStartMenuNavigation(key string) (tea.Model, tea.Cmd) {
 	} else if m.Focus > 2 {
 		m.Focus = 0
 	}
+
 	return m, nil
 }
 
@@ -38,13 +43,15 @@ func (m *Model) handleMainMenuNavigation(key string) (tea.Model, tea.Cmd) {
 		case 0: // Save secret
 			m.State = stateSecretTypeMenu
 			m.Focus = 0
+
 			return m, nil
 		case 1: // View secrets
 			m.State = stateViewSecrets
 			m.Loading = true
-			m.Message = "Loading secrets..."
+			m.Message = loadMsg
 			m.Focus = 0
-			return m, getVaultsStream(m.client, m.Token, m.Password) // Reload secrets when entering the menu
+
+			return m, getVaultsStream(m.client, m.Token, m.encryptionKey) // Reload secrets when entering the menu
 		case 2: // Change password
 			return m.initializeAuthForm(stateChangePassword, changePasswordForm)
 		case 3: // Quit
@@ -63,6 +70,7 @@ func (m *Model) handleMainMenuNavigation(key string) (tea.Model, tea.Cmd) {
 	} else if m.Focus > 3 {
 		m.Focus = 0
 	}
+
 	return m, nil
 }
 
@@ -93,23 +101,26 @@ func (m *Model) handleSecretTypeMenuNavigation(key string) (tea.Model, tea.Cmd) 
 	} else if m.Focus > 4 {
 		m.Focus = 0
 	}
+
 	return m, nil
 }
 
 func (m *Model) handleAuthFormNavigation(key string) (tea.Model, tea.Cmd) {
 	if key == enter && m.Focus == len(m.CurrentForm.Fields) && !m.Loading {
 		if m.FormData["Login"] == "" || m.FormData["Password"] == "" {
-			m.Message = "Please fill in all fields"
+			m.Message = fillMsg
 			return m, nil
 		}
+
 		m.Loading = true
 		if m.State == stateRegister {
 			m.Message = "Registering..."
 			return m, registerUser(m.client, m.FormData["Login"], m.FormData["Password"])
-		} else {
-			m.Message = "Logging in..."
-			return m, loginUser(m.client, m.FormData["Login"], m.FormData["Password"])
 		}
+
+		m.Message = "Logging in..."
+
+		return m, loginUser(m.client, m.FormData["Login"], m.FormData["Password"])
 	}
 
 	switch key {
@@ -124,6 +135,7 @@ func (m *Model) handleAuthFormNavigation(key string) (tea.Model, tea.Cmd) {
 	} else if m.Focus < 0 {
 		m.Focus = len(m.CurrentForm.Fields)
 	}
+
 	return m, nil
 }
 
@@ -136,10 +148,12 @@ func (m *Model) handleSaveSecretNavigation(key string) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+
 		m.Loading = true
 		m.Message = "Saving secret..."
 		title := m.FormData[m.CurrentForm.Fields[0].Name]
-		return m, saveVault(m.client, m.Token, m.Password, m.SecretType, m.FormData, title)
+
+		return m, saveVault(m, title)
 	}
 
 	switch key {
@@ -154,6 +168,7 @@ func (m *Model) handleSaveSecretNavigation(key string) (tea.Model, tea.Cmd) {
 	} else if m.Focus < 0 {
 		m.Focus = len(m.CurrentForm.Fields)
 	}
+
 	return m, nil
 }
 
@@ -164,6 +179,7 @@ func (m *Model) handleViewSecretsNavigation(key string) (tea.Model, tea.Cmd) {
 			// Select the vault to view details
 			m.SelectedVault = m.Vaults[m.Focus]
 			m.State = stateViewSecretDetail
+
 			return m, nil
 		}
 	case up:
@@ -194,32 +210,44 @@ func (m *Model) handleViewSecretDetailNavigation(key string) (tea.Model, tea.Cmd
 	case esc:
 		m.State = stateViewSecrets
 		m.SelectedVault = nil
+
 		return m, nil
 
 	case enter:
-		if m.Focus == 0 { // Go Back button
+		switch m.Focus {
+		case 0: // Go Back btn
 			m.State = stateViewSecrets
 			m.SelectedVault = nil
-		} else if m.Focus == 1 && m.SelectedVault.DataType == secretTypeBinary && m.SelectedVault != nil {
-			// Download button for binary
 
-			m.State = stateDownloadLocation
-			m.CurrentForm = &fileLocationForm
-			m.Focus = 0
+		case 1: // Download/Update button
+			if m.SelectedVault != nil && m.SelectedVault.DataType == secretTypeBinary {
+				// Download btn for binary
+				m.State = stateDownloadLocation
+				m.CurrentForm = &fileLocationForm
+				m.Focus = 0
 
-			// Set default download path
-			defaultPath := getDefaultDownloadPath(m.SelectedVault)
-			m.FormData["Download Path"] = defaultPath
-		} else if m.Focus == 1 || m.Focus == 2 { // Delete button for all types
+				// Set default download path
+				defaultPath := getDefaultDownloadPath(m.SelectedVault)
+				m.FormData["Download Path"] = defaultPath
+			} else if m.SelectedVault != nil {
+				// Update button for specific types
+				m.State = stateUpdateSecret
+				m.initializeUpdateForm()
+
+				return m, nil
+			}
+
+		case 2: // Delete button for all types
 			if m.SelectedVault != nil {
 				m.Loading = true
 				m.Message = "Deleting secret..."
+
 				return m, deactivateVaultGrpc(m.client, m.Token, m.SelectedVault)
 			}
 		}
 
 	case left, right, tab, shiftTab:
-		buttonCount := 3 // Back, Download, Delete
+		buttonCount := 3 // Back, Update, Download, Delete
 		if key == right || key == tab {
 			m.Focus = (m.Focus + 1) % buttonCount
 		} else {
@@ -247,18 +275,22 @@ func (m *Model) handleDownloadLocationNavigation(key string) (tea.Model, tea.Cmd
 				m.Message = "Please enter a download path"
 				return m, nil
 			}
+
 			m.State = stateFileDownload
 			m.Loading = true
 			m.Message = "Downloading file..."
+
 			return m, m.downloadFile(downloadPath)
 		case 2:
 			m.State = stateViewSecretDetail
 			m.FormData = nil
+
 			return m, nil
 		}
 	case esc:
 		m.State = stateViewSecretDetail
 		m.FormData = nil
+
 		return m, nil
 	case tab, shiftTab:
 		if key == tab {
@@ -268,56 +300,67 @@ func (m *Model) handleDownloadLocationNavigation(key string) (tea.Model, tea.Cmd
 		}
 	default:
 		// Handle text input for download path
-		if m.Focus == 0 && !m.Loading {
-			field := "Download Path"
-			if key == backspace {
-				if len(m.FormData[field]) > 0 {
-					m.FormData[field] = m.FormData[field][:len(m.FormData[field])-1]
-				}
-			} else if len(key) == 1 {
-				m.FormData[field] += key
+		if m.Focus != 0 || m.Loading {
+			return m, nil
+		}
+
+		field := "Download Path"
+		if key == backspace && m.FormData[field] != "" {
+			if m.FormData[field] != "" {
+				m.FormData[field] = m.FormData[field][:len(m.FormData[field])-1]
 			}
+
+			return m, nil
+		}
+
+		if len(key) == 1 {
+			m.FormData[field] += key
 		}
 	}
+
 	return m, nil
 }
 
 func (m *Model) handleChangePasswordNavigation(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case enter:
-		if m.Focus == len(m.CurrentForm.Fields) && !m.Loading {
-			// Validate form
-			currentPassword := m.FormData["Current Password"]
-			newPassword := m.FormData["New Password"]
-			confirmPassword := m.FormData["Confirm New Password"]
-
-			if currentPassword == "" || newPassword == "" || confirmPassword == "" {
-				m.Message = "Please fill in all fields"
-				return m, nil
-			}
-
-			if currentPassword != m.Password {
-				m.Message = "Current password is wrong"
-				return m, nil
-			}
-
-			if newPassword != confirmPassword {
-				m.Message = "New passwords do not match"
-				return m, nil
-			}
-
-			if newPassword == currentPassword {
-				m.Message = "New password must be different from current password"
-				return m, nil
-			}
-
-			m.Loading = true
-			m.Message = "Changing password..."
-			return m, changePassword(m.client, m.Login, m.Token, currentPassword, newPassword)
+		if m.Focus != len(m.CurrentForm.Fields) || m.Loading {
+			return m, nil
 		}
+
+		// Validate form
+		currentPassword := m.FormData["Current Password"]
+		newPassword := m.FormData["New Password"]
+		confirmPassword := m.FormData["Confirm New Password"]
+
+		if currentPassword == "" || newPassword == "" || confirmPassword == "" {
+			m.Message = fillMsg
+			return m, nil
+		}
+
+		if currentPassword != m.Password {
+			m.Message = "Current password is wrong"
+			return m, nil
+		}
+
+		if newPassword != confirmPassword {
+			m.Message = "New passwords do not match"
+			return m, nil
+		}
+
+		if newPassword == currentPassword {
+			m.Message = "New password must be different from current password"
+			return m, nil
+		}
+
+		m.Loading = true
+		m.Message = "Changing password..."
+
+		return m, changePassword(m.client, m.Login, m.Token, currentPassword, newPassword)
 	case esc:
 		m.State = stateMainMenu
 		m.resetForm()
+
 		return m, nil
 	case up, shiftTab:
 		m.Focus = (m.Focus - 1 + 4) % 4 // 3 fields + 1 button
@@ -326,4 +369,30 @@ func (m *Model) handleChangePasswordNavigation(key string) (tea.Model, tea.Cmd) 
 	}
 
 	return m, nil
+}
+
+// handleUpdateSecretNavigation handles pressed key on stateUpdateSecret.On "esc" - return to view secrets, on "enter" - calls update with new data.
+func (m *Model) handleUpdateSecretNavigation(key string) (tea.Model, tea.Cmd) {
+	if key == enter && m.Focus == len(m.CurrentForm.Fields) && !m.Loading {
+		formDef := m.CurrentForm
+		for _, field := range formDef.Fields {
+			if field.Required && m.FormData[field.Name] == "" {
+				m.Message = fmt.Sprintf("Please fill in %s", field.Name)
+				return m, nil
+			}
+		}
+
+		m.Loading = true
+		m.Message = "Updating secret..."
+
+		return m, updateVault(m)
+	}
+
+	if key == esc {
+		m.State = stateViewSecretDetail
+		return m, nil
+	}
+
+	// Reuse the same navigation as save secret
+	return m.handleSaveSecretNavigation(key)
 }

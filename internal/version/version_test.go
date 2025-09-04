@@ -7,16 +7,16 @@ import (
 
 func TestGetVersionInfo(t *testing.T) {
 	// Save original values to restore later
-	originalVersion := Version
-	originalBuildDate := BuildDate
-	originalGitCommit := GitCommit
-	originalGoVersion := GoVersion
+	originalVersion := version
+	originalBuildDate := buildDate
+	originalGitCommit := gitCommit
+	originalGoVersion := goVersion
 
 	defer func() {
-		Version = originalVersion
-		BuildDate = originalBuildDate
-		GitCommit = originalGitCommit
-		GoVersion = originalGoVersion
+		version = originalVersion
+		buildDate = originalBuildDate
+		gitCommit = originalGitCommit
+		goVersion = originalGoVersion
 	}()
 
 	tests := []struct {
@@ -64,10 +64,10 @@ func TestGetVersionInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the test values
-			Version = tt.setVersion
-			BuildDate = tt.setBuildDate
-			GitCommit = tt.setGitCommit
-			GoVersion = tt.setGoVersion
+			version = tt.setVersion
+			buildDate = tt.setBuildDate
+			gitCommit = tt.setGitCommit
+			goVersion = tt.setGoVersion
 
 			result := GetVersionInfo()
 

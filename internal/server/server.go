@@ -25,13 +25,17 @@ func (app *GophKeeperApp) Start() error {
 
 	<-rootCtx.Done()
 	app.Logger.Info("Received shutdown signal, shutting down...")
+
 	return nil
 }
 
-// startgRPS starts grps server
+// startgRPS starts grps server.
 func startgRPS(ctx context.Context, app *GophKeeperApp) (*grpc.Server, error) {
 	address := fmt.Sprintf("%s:%s", app.Config.Server.Host, app.Config.Server.Port)
-	lis, err := net.Listen("tcp", address)
+
+	lc := &net.ListenConfig{}
+
+	lis, err := lc.Listen(context.Background(), "tcp", address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on gRPC: %w", err)
 	}
@@ -40,9 +44,9 @@ func startgRPS(ctx context.Context, app *GophKeeperApp) (*grpc.Server, error) {
 		if err := app.GRPCServer.Serve(lis); err != nil {
 			app.Logger.Error("startgRPS:server failed to start", slog.Any("error", err))
 			os.Exit(1)
-
 		}
 	}()
+
 	app.Logger.Info("startgRPS:gRPC server started", slog.String("server_address", address))
 
 	go func() {

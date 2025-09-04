@@ -5,20 +5,20 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
+	"github.com/dangerousmonk/gophkeeper/internal/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-type contextKey struct {
+// ContextKey represents a type for context keys.
+type ContextKey struct {
 	name string
 }
 
-var (
-	userIDContextKey = &contextKey{"userID"}
-)
+// UserIDContextKey is the key used to store user ID in context.
+var UserIDContextKey = &ContextKey{"userID"}
 
 const (
 	bearerPrefix = "Bearer "
@@ -39,14 +39,13 @@ func IsPublicMethod(fullMethod string) bool {
 }
 
 // AuthUnaryInterceptor reads JWT token from metadata and validates it.
-func AuthUnaryInterceptor(jwtManager utils.Authenticator) grpc.UnaryServerInterceptor {
+func AuthUnaryInterceptor(jwtManager auth.Authenticator) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-
 		if IsPublicMethod(info.FullMethod) {
 			return handler(ctx, req)
 		}
@@ -70,9 +69,11 @@ func AuthUnaryInterceptor(jwtManager utils.Authenticator) grpc.UnaryServerInterc
 		if err != nil {
 			return nil, status.Errorf(codes.Unauthenticated, "invalid token")
 		}
+
 		userID := claims.UserID
 
-		ctx = context.WithValue(ctx, userIDContextKey, userID)
+		ctx = context.WithValue(ctx, UserIDContextKey, userID)
+
 		return handler(ctx, req)
 	}
 }
@@ -86,15 +87,16 @@ func UserIDFromContext(ctx context.Context) (int, bool) {
 		return -1, false
 	}
 
-	if val := ctx.Value(userIDContextKey); val != nil {
+	if val := ctx.Value(UserIDContextKey); val != nil {
 		if userID, ok := val.(int); ok {
 			return userID, true
 		}
 	}
+
 	return -1, false
 }
 
-// wrappedServerStream wraps the original ServerStream to override the context
+// wrappedServerStream wraps the original ServerStream to override the context.
 type wrappedServerStream struct {
 	grpc.ServerStream
 	ctx context.Context
@@ -104,26 +106,29 @@ func (s *wrappedServerStream) Context() context.Context {
 	return s.ctx
 }
 
-// StreamAuthInterceptor is uses to check user token for for streaming RPCs
-func StreamAuthInterceptor(jwtManager utils.Authenticator) grpc.StreamServerInterceptor {
-	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+// StreamAuthInterceptor is uses to check user token for for streaming RPCs.
+func StreamAuthInterceptor(jwtManager auth.Authenticator) grpc.StreamServerInterceptor {
+	return func(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := ss.Context()
+
 		userID, err := authenticate(ctx, jwtManager)
 		if err != nil {
 			slog.Warn("StreamAuthInterceptor: authentication failed", slog.Any("error", err))
 			return status.Errorf(codes.Unauthenticated, "authentication failed: %v", err)
 		}
 
-		ctx = context.WithValue(ctx, userIDContextKey, userID)
+		ctx = context.WithValue(ctx, UserIDContextKey, userID)
 
 		wrappedStream := &wrappedServerStream{ss, ctx}
+
 		slog.Info("StreamAuthInterceptor: user authenticated", slog.Int("user_id", userID))
+
 		return handler(srv, wrappedStream)
 	}
 }
 
-// authenticate extracts and validates token from gRPC metadata
-func authenticate(ctx context.Context, jwtManager utils.Authenticator) (int, error) {
+// authenticate extracts and validates token from gRPC metadata.
+func authenticate(ctx context.Context, jwtManager auth.Authenticator) (int, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return -1, status.Errorf(codes.Unauthenticated, "missing metadata")
@@ -150,6 +155,8 @@ func authenticate(ctx context.Context, jwtManager utils.Authenticator) (int, err
 		slog.Warn("authenticate: invalid token", slog.String("token", token))
 		return -1, status.Errorf(codes.Unauthenticated, "invalid token")
 	}
+
 	userID := claims.UserID
+
 	return userID, nil
 }

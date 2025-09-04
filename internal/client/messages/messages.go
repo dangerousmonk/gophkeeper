@@ -4,7 +4,7 @@ import (
 	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
 )
 
-// Message types
+// Message types.
 type RegistrationResultMsg struct {
 	Success bool
 	Message string
@@ -44,6 +44,11 @@ type DownloadResultMsg struct {
 }
 
 type ChangePasswordResultMsg struct {
-	Sucess bool
-	Err    error
+	Success bool
+	Err     error
+}
+
+type UpdateVaultResultMsg struct {
+	Success bool
+	Err     error
 }

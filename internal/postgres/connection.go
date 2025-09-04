@@ -9,7 +9,7 @@ import (
 	"github.com/dangerousmonk/gophkeeper/internal/config"
 )
 
-// GetDSN returns database connection string filled from config
+// GetDSN returns database connection string filled from config.
 func GetDSN(cfg *config.Config) string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
@@ -22,7 +22,7 @@ func GetDSN(cfg *config.Config) string {
 	)
 }
 
-// InitDB function is used to initialize new DB
+// InitDB function is used to initialize new DB.
 func InitDB(ctx context.Context, dsn string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -34,5 +34,6 @@ func InitDB(ctx context.Context, dsn string) (*sql.DB, error) {
 	}
 
 	slog.Info("InitDB success", slog.String("dsn", dsn))
+
 	return db, nil
 }

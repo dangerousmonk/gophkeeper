@@ -92,3 +92,17 @@ func (mr *MockVaultRepositoryMockRecorder) Insert(ctx, v interface{}) *gomock.Ca
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockVaultRepository)(nil).Insert), ctx, v)
 }
+
+// Update mocks base method.
+func (m *MockVaultRepository) Update(ctx context.Context, id int, name string, encryptedData []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, id, name, encryptedData)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockVaultRepositoryMockRecorder) Update(ctx, id, name, encryptedData interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockVaultRepository)(nil).Update), ctx, id, name, encryptedData)
+}

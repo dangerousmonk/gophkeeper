@@ -1,6 +1,7 @@
 package encryption
 
 import (
+	"bytes"
 	"os"
 	"testing"
 )
@@ -22,7 +23,7 @@ func TestEncryptionDecryption(t *testing.T) {
 	}
 
 	// Verify data matches
-	if string(decrypted) != string(testData) {
+	if !bytes.Equal(decrypted, testData) {
 		t.Errorf("Decrypted data doesn't match original. Got: %s, Want: %s",
 			string(decrypted), string(testData))
 	}
@@ -33,7 +34,7 @@ func TestFileEncryption(t *testing.T) {
 	testContent := "hello world its me your best friend hahah what fun we will have1"
 	testFile := "test_hello.txt"
 
-	err := os.WriteFile(testFile, []byte(testContent), 0644)
+	err := os.WriteFile(testFile, []byte(testContent), 0o600)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}

@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/dangerousmonk/gophkeeper/internal/auth"
 	"github.com/dangerousmonk/gophkeeper/internal/postgres"
-	"github.com/dangerousmonk/gophkeeper/internal/utils"
 )
 
 var (
@@ -23,16 +23,19 @@ func (s *UserService) Login(
 	ctx context.Context,
 	login string,
 	password string,
-	auth utils.Authenticator,
+	authenticator auth.Authenticator,
 ) (string, error) {
 	const op = "UserService:Login"
+
 	user, err := s.repo.Get(ctx, login)
 	if err != nil {
 		if errors.Is(err, postgres.ErrUserNotFound) {
 			slog.Warn(op, slog.Any("error", err))
 			return "", fmt.Errorf("%s %w", op, ErrNoUserWithLogin)
 		}
+
 		slog.Error(op, slog.Any("error", err))
+
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -41,7 +44,7 @@ func (s *UserService) Login(
 		return "", fmt.Errorf("%s %w", op, ErrInvalidCredentials)
 	}
 
-	token, err := auth.CreateToken(user.ID, time.Hour*1)
+	token, err := authenticator.CreateToken(user.ID, time.Hour*1)
 	if err != nil {
 		slog.Warn(op, slog.Any("error", err))
 		return "", fmt.Errorf("%s: %w", op, err)
