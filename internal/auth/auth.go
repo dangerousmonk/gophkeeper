@@ -51,6 +51,7 @@ func (claims *Claims) Valid() error {
 	return nil
 }
 
+//go:generate mockgen -package mocks -source auth.go -destination ./mocks/mock_auth.go Authenticator
 type Authenticator interface {
 	CreateToken(userID int, duration time.Duration) (string, error)
 	ValidateToken(token string) (*Claims, error)

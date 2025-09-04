@@ -12,11 +12,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type contextKey struct {
+// ContextKey represents a type for context keys.
+type ContextKey struct {
 	name string
 }
 
-var userIDContextKey = &contextKey{"userID"}
+// UserIDContextKey is the key used to store user ID in context.
+var UserIDContextKey = &ContextKey{"userID"}
 
 const (
 	bearerPrefix = "Bearer "
@@ -70,7 +72,7 @@ func AuthUnaryInterceptor(jwtManager auth.Authenticator) grpc.UnaryServerInterce
 
 		userID := claims.UserID
 
-		ctx = context.WithValue(ctx, userIDContextKey, userID)
+		ctx = context.WithValue(ctx, UserIDContextKey, userID)
 
 		return handler(ctx, req)
 	}
@@ -85,7 +87,7 @@ func UserIDFromContext(ctx context.Context) (int, bool) {
 		return -1, false
 	}
 
-	if val := ctx.Value(userIDContextKey); val != nil {
+	if val := ctx.Value(UserIDContextKey); val != nil {
 		if userID, ok := val.(int); ok {
 			return userID, true
 		}
@@ -115,7 +117,7 @@ func StreamAuthInterceptor(jwtManager auth.Authenticator) grpc.StreamServerInter
 			return status.Errorf(codes.Unauthenticated, "authentication failed: %v", err)
 		}
 
-		ctx = context.WithValue(ctx, userIDContextKey, userID)
+		ctx = context.WithValue(ctx, UserIDContextKey, userID)
 
 		wrappedStream := &wrappedServerStream{ss, ctx}
 

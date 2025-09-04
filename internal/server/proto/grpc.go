@@ -25,16 +25,16 @@ const (
 // GophKeepergRPCServer Supports all the service methods.
 type GophKeepergRPCServer struct {
 	UnimplementedGophKeeperServer
-	userService   *service.UserService
-	vaultService  *service.VaultService
+	userService   service.UserHandler
+	vaultService  service.VaultHandler
 	cfg           *config.Config
 	authenticator auth.Authenticator
 }
 
 // NewGophKeepergRPCServer creates the ShortenerGRPCServer structure and returns a pointer to freshly created struct.
 func NewGophKeepergRPCServer(
-	userService *service.UserService,
-	vaultService *service.VaultService,
+	userService service.UserHandler,
+	vaultService service.VaultHandler,
 	cfg *config.Config,
 	authenticator auth.Authenticator,
 ) *GophKeepergRPCServer {
