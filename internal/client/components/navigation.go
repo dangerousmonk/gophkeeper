@@ -220,7 +220,7 @@ func (m *Model) handleViewSecretDetailNavigation(key string) (tea.Model, tea.Cmd
 			m.SelectedVault = nil
 
 		case 1: // Download/Update button
-			if m.SelectedVault != nil && m.SelectedVault.DataType == secretTypeBinary {
+			if m.SelectedVault != nil && m.SelectedVault.GetDataType() == secretTypeBinary {
 				// Download btn for binary
 				m.State = stateDownloadLocation
 				m.CurrentForm = &fileLocationForm

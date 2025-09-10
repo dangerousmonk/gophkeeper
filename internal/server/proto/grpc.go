@@ -15,6 +15,7 @@ import (
 	"github.com/dangerousmonk/gophkeeper/internal/service"
 	codes "google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -58,7 +59,7 @@ func (srv GophKeepergRPCServer) Ping(ctx context.Context, _ *PingRequest) (*Ping
 
 // RegisterUser is used to register new user.
 func (srv GophKeepergRPCServer) RegisterUser(ctx context.Context, req *RegisterUserRequest) (*RegisterUserResponse, error) {
-	registerReq := &models.RegisterUserRequest{Login: req.Login, Password: req.Password}
+	registerReq := &models.RegisterUserRequest{Login: req.GetLogin(), Password: req.GetPassword()}
 
 	res, err := srv.userService.Register(ctx, registerReq)
 	if err != nil {
@@ -70,23 +71,23 @@ func (srv GophKeepergRPCServer) RegisterUser(ctx context.Context, req *RegisterU
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	resp := RegisterUserResponse{Id: uint64(res.ID), Login: res.Login, Token: token, Success: res.Success}
+	resp := RegisterUserResponse_builder{Id: proto.Uint64(uint64(res.ID)), Login: &res.Login, Token: &token, Success: &res.Success}.Build()
 
-	return &resp, nil
+	return resp, nil
 }
 
 // RegisterUser is used to register new user.
 func (srv GophKeepergRPCServer) LoginUser(ctx context.Context, req *LoginUserRequest) (*LoginUserResponse, error) {
-	registerReq := &models.LoginUserRequest{Login: req.Login, Password: req.Password}
+	registerReq := &models.LoginUserRequest{Login: req.GetLogin(), Password: req.GetPassword()}
 
 	token, err := srv.userService.Login(ctx, registerReq.Login, registerReq.Password, srv.authenticator)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	resp := LoginUserResponse{Token: token, Success: true}
+	resp := LoginUserResponse_builder{Token: &token, Success: proto.Bool(true)}.Build()
 
-	return &resp, nil
+	return resp, nil
 }
 
 // SaveVault saves data from client to vault.
@@ -98,10 +99,10 @@ func (srv GophKeepergRPCServer) SaveVault(ctx context.Context, req *SaveVaultReq
 
 	v := models.Vault{
 		UserID:        userID,
-		Name:          req.Name,
-		DataType:      models.DataType(req.DataType),
-		EncryptedData: req.EcryptedData,
-		MetaData:      req.MetaData.AsMap(),
+		Name:          req.GetName(),
+		DataType:      models.DataType(req.GetDataType()),
+		EncryptedData: req.GetEcryptedData(),
+		MetaData:      req.GetMetaData().AsMap(),
 	}
 
 	_, err := srv.vaultService.Save(ctx, &v)
@@ -109,7 +110,7 @@ func (srv GophKeepergRPCServer) SaveVault(ctx context.Context, req *SaveVaultReq
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &SaveVaultResponse{Success: true}, nil
+	return SaveVaultResponse_builder{Success: proto.Bool(true)}.Build(), nil
 }
 
 // DeactivateVault is used to soft delete specific vault by using active flag.
@@ -119,12 +120,12 @@ func (srv GophKeepergRPCServer) DeactivateVault(ctx context.Context, req *Deacti
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
 
-	err := srv.vaultService.Deactivate(ctx, userID, int(req.SecretId))
+	err := srv.vaultService.Deactivate(ctx, userID, int(req.GetSecretId()))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &DeactivateVaultResponse{Success: true}, nil
+	return DeactivateVaultResponse_builder{Success: proto.Bool(true)}.Build(), nil
 }
 
 func (srv GophKeepergRPCServer) UploadFile(stream GophKeeper_UploadFileServer) error {
@@ -183,17 +184,17 @@ func (srv GophKeepergRPCServer) UploadFile(stream GophKeeper_UploadFileServer) e
 		return status.Error(codes.Internal, err.Error())
 	}
 
-	vItem := &VaultItem{
-		Id:            int32(res.ID),
-		UserId:        int32(res.UserID),
-		DataType:      string(res.DataType),
-		Name:          res.Name,
+	vItem := VaultItem_builder{
+		Id:            proto.Int32(int32(res.ID)),
+		UserId:        proto.Int32(int32(res.UserID)),
+		DataType:      (*string)(&res.DataType),
+		Name:          &res.Name,
 		EncryptedData: res.EncryptedData,
-		Version:       int32(res.Version),
-		CreatedAt:     res.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:     res.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		Active:        res.Active,
-	}
+		Version:       proto.Int32(int32(res.Version)),
+		CreatedAt:     proto.String(res.CreatedAt.Format("2006-01-02T15:04:05Z07:00")),
+		UpdatedAt:     proto.String(res.UpdatedAt.Format("2006-01-02T15:04:05Z07:00")),
+		Active:        proto.Bool(res.Active),
+	}.Build()
 
 	err = stream.SendAndClose(vItem)
 	if err != nil {
@@ -235,18 +236,18 @@ func (srv *GophKeepergRPCServer) GetSteamedVaults(_ *StreamVaultsRequest, stream
 			continue
 		}
 
-		vaultItems = append(vaultItems, &VaultItem{
-			Id:            int32(v.ID),
-			UserId:        int32(v.UserID),
-			DataType:      string(v.DataType),
-			Name:          v.Name,
+		vaultItems = append(vaultItems, VaultItem_builder{
+			Id:            proto.Int32(int32(v.ID)),
+			UserId:        proto.Int32(int32(v.UserID)),
+			DataType:      (*string)(&v.DataType),
+			Name:          &v.Name,
 			EncryptedData: v.EncryptedData,
 			MetaData:      pbMeta,
-			Version:       int32(v.Version),
-			CreatedAt:     v.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			UpdatedAt:     v.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			Active:        v.Active,
-		})
+			Version:       proto.Int32(int32(v.Version)),
+			CreatedAt:     proto.String(v.CreatedAt.Format("2006-01-02T15:04:05Z07:00")),
+			UpdatedAt:     proto.String(v.UpdatedAt.Format("2006-01-02T15:04:05Z07:00")),
+			Active:        proto.Bool(v.Active),
+		}.Build())
 	}
 
 	totalItems := len(vaultItems)
@@ -260,22 +261,20 @@ func (srv *GophKeepergRPCServer) GetSteamedVaults(_ *StreamVaultsRequest, stream
 		isLastItem := itemIndex == totalItems-1
 
 		// Send metadata for the current item
-		metadata := &StreamMetadata{
-			TotalItems:       int32(totalItems),
-			CurrentItemIndex: int32(itemIndex),
-			IsFirstItem:      isFirstItem,
-			IsLastItem:       isLastItem,
-		}
+		metadata := StreamMetadata_builder{
+			TotalItems:       proto.Int32(int32(totalItems)),
+			CurrentItemIndex: proto.Int32(int32(itemIndex)),
+			IsFirstItem:      proto.Bool(isFirstItem),
+			IsLastItem:       proto.Bool(isLastItem),
+		}.Build()
 
-		if err := stream.Send(&StreamVaultsResponse{
-			Payload: &StreamVaultsResponse_Metadata{Metadata: metadata},
-		}); err != nil {
+		if err := stream.Send(StreamVaultsResponse_builder{Metadata: metadata}.Build()); err != nil {
 			slog.Warn("GetSteamedVaults:failed to send metadata", slog.Any("error", err))
 			return status.Errorf(codes.Internal, "failed to send metadata: %v", err)
 		}
 
 		// Handle chunking of encrypted_data
-		encryptedData := item.EncryptedData
+		encryptedData := item.GetEncryptedData()
 		totalChunks := (len(encryptedData) + chunkSize - 1) / chunkSize
 
 		if len(encryptedData) == 0 {
@@ -318,31 +317,29 @@ func (srv *GophKeepergRPCServer) sendItemChunk(
 	isLastChunk bool,
 ) error {
 	// Create a copy of the item without encrypted data for the chunk message
-	itemWithoutData := &VaultItem{
-		Id:            item.Id,
-		UserId:        item.UserId,
-		Name:          item.Name,
-		DataType:      item.DataType,
+	itemWithoutData := VaultItem_builder{
+		Id:            proto.Int32(item.GetId()),
+		UserId:        proto.Int32(item.GetUserId()),
+		Name:          proto.String(item.GetName()),
+		DataType:      proto.String(item.GetDataType()),
 		EncryptedData: nil, // Data is sent separately in chunks
-		MetaData:      item.MetaData,
-		CreatedAt:     item.CreatedAt,
-		UpdatedAt:     item.UpdatedAt,
-		Active:        item.Active,
-		Version:       item.Version,
-	}
+		MetaData:      item.GetMetaData(),
+		CreatedAt:     proto.String(item.GetCreatedAt()),
+		UpdatedAt:     proto.String(item.GetUpdatedAt()),
+		Active:        proto.Bool(item.GetActive()),
+		Version:       proto.Int32(item.GetVersion()),
+	}.Build()
 
-	vaultChunk := &VaultItemChunk{
+	vaultChunk := VaultItemChunk_builder{
 		Item:               itemWithoutData,
 		EncryptedDataChunk: chunk,
-		ChunkIndex:         int32(chunkIndex),
-		TotalChunks:        int32(totalChunks),
-		IsFirstChunk:       isFirstChunk,
-		IsLastChunk:        isLastChunk,
-	}
+		ChunkIndex:         proto.Int32(int32(chunkIndex)),
+		TotalChunks:        proto.Int32(int32(totalChunks)),
+		IsFirstChunk:       proto.Bool(isFirstChunk),
+		IsLastChunk:        proto.Bool(isLastChunk),
+	}.Build()
 
-	return stream.Send(&StreamVaultsResponse{
-		Payload: &StreamVaultsResponse_ItemChunk{ItemChunk: vaultChunk},
-	})
+	return stream.Send(StreamVaultsResponse_builder{ItemChunk: vaultChunk}.Build())
 }
 
 // ChangePassword is used to change user password.
@@ -364,7 +361,7 @@ func (srv GophKeepergRPCServer) ChangePassword(ctx context.Context, req *ChangeP
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &ChangePasswordResponse{Success: true}, nil
+	return ChangePasswordResponse_builder{Success: proto.Bool(true)}.Build(), nil
 }
 
 // UpdateVault is used update specific vault with new data.
@@ -374,7 +371,7 @@ func (srv GophKeepergRPCServer) UpdateVault(ctx context.Context, req *UpdateVaul
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
 
-	err := srv.vaultService.Update(ctx, int(req.Id), userID, req.Name, req.GetEncryptedData())
+	err := srv.vaultService.Update(ctx, int(req.GetId()), userID, req.GetName(), req.GetEncryptedData())
 	if err != nil {
 		if errors.Is(err, service.ErrVaultOwnerMismatchUpdate) {
 			return nil, status.Errorf(codes.Unauthenticated, "Access to forbidden data")
@@ -383,5 +380,5 @@ func (srv GophKeepergRPCServer) UpdateVault(ctx context.Context, req *UpdateVaul
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &UpdateVaultResponse{Success: true}, nil
+	return UpdateVaultResponse_builder{Success: proto.Bool(true)}.Build(), nil
 }

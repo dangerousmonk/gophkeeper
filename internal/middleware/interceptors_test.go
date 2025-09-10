@@ -180,7 +180,8 @@ func TestAuthUnaryInterceptor(t *testing.T) {
 			handler := func(ctx context.Context, _ interface{}) (interface{}, error) {
 				// Verify userID was set in context if expected
 				if tt.wantUserID != nil {
-					userID := ctx.Value(UserIDContextKey)
+					userID, ok := UserIDFromContext(ctx)
+					require.True(t, ok)
 					assert.Equal(t, tt.wantUserID, userID)
 				}
 
@@ -236,15 +237,9 @@ func TestUserIDFromContext(t *testing.T) {
 	}{
 		{
 			name:   "context_ok",
-			ctx:    context.WithValue(context.Background(), UserIDContextKey, 123),
+			ctx:    WithUserID(context.Background(), 123),
 			wantID: 123,
 			wantOK: true,
-		},
-		{
-			name:   "context_string",
-			ctx:    context.WithValue(context.Background(), UserIDContextKey, "user123"),
-			wantID: -1,
-			wantOK: false,
 		},
 		{
 			name:   "context_with_different_key",
@@ -266,7 +261,7 @@ func TestUserIDFromContext(t *testing.T) {
 		},
 		{
 			name:   "context_with_nil_value",
-			ctx:    context.WithValue(context.Background(), UserIDContextKey, nil),
+			ctx:    context.WithValue(context.Background(), userIDContextKey, nil),
 			wantID: -1,
 			wantOK: false,
 		},
