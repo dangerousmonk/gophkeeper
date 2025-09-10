@@ -258,7 +258,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		activeCount := 0
 
 		for _, vault := range msg.Vaults {
-			if vault.Active {
+			if vault.GetActive() {
 				activeVaults = append(activeVaults, vault)
 				activeCount++
 			}

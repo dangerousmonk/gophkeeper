@@ -15,7 +15,7 @@ func (m *Model) downloadFile(path string) tea.Cmd {
 
 	return func() tea.Msg {
 		vault := m.SelectedVault
-		if vault == nil || vault.DataType != secretTypeBinary {
+		if vault == nil || vault.GetDataType() != secretTypeBinary {
 			return messages.DownloadResultMsg{
 				Err:     fmt.Errorf("no file selected for download"),
 				Success: false,
@@ -50,7 +50,7 @@ func (m *Model) downloadFile(path string) tea.Cmd {
 		}
 
 		// Write file to disk
-		if err := os.WriteFile(finalPath, m.SelectedVault.EncryptedData, fileMode); err != nil {
+		if err := os.WriteFile(finalPath, m.SelectedVault.GetEncryptedData(), fileMode); err != nil {
 			return messages.DownloadResultMsg{
 				Err:     fmt.Errorf("failed to write file: %w", err),
 				Success: false,
@@ -66,11 +66,11 @@ func (m *Model) downloadFile(path string) tea.Cmd {
 
 func getDefaultDownloadPath(vault *proto.VaultItem) string {
 	fileName := "downloaded_file"
-	if vault.MetaData == nil || vault.MetaData.Fields == nil {
+	if vault.GetMetaData() == nil || vault.GetMetaData().Fields == nil {
 		return filepath.Join(".", "downloads", fileName)
 	}
 
-	if nameVal, exists := vault.MetaData.Fields["file_name"]; exists {
+	if nameVal, exists := vault.GetMetaData().Fields["file_name"]; exists {
 		fileName = nameVal.GetStringValue()
 	}
 

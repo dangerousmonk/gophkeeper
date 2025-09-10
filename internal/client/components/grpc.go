@@ -16,14 +16,15 @@ import (
 	"github.com/dangerousmonk/gophkeeper/internal/client/messages"
 	"github.com/dangerousmonk/gophkeeper/internal/encryption"
 	"github.com/dangerousmonk/gophkeeper/internal/files"
-	"github.com/dangerousmonk/gophkeeper/internal/server/proto"
+	sproto "github.com/dangerousmonk/gophkeeper/internal/server/proto"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // vaultItemWithData represents a fully reconstructed VaultItem.
 type vaultItemWithData struct {
-	*proto.VaultItem
+	*sproto.VaultItem
 	ReconstructedData []byte
 }
 
@@ -35,14 +36,14 @@ func contextWithToken(ctx context.Context, token string) context.Context {
 	return ctx
 }
 
-func registerUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
+func registerUser(client sproto.GophKeeperClient, login, password string) tea.Cmd {
 	const timeout = 3 * time.Second
 
 	return func() tea.Msg {
-		req := &proto.RegisterUserRequest{
-			Login:    login,
-			Password: password,
-		}
+		req := sproto.RegisterUserRequest_builder{
+			Login:    &login,
+			Password: &password,
+		}.Build()
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -56,23 +57,23 @@ func registerUser(client proto.GophKeeperClient, login, password string) tea.Cmd
 		}
 
 		return messages.RegistrationResultMsg{
-			Success: resp.Success,
+			Success: resp.GetSuccess(),
 			Message: "Registered successfully",
 			Err:     nil,
-			Token:   resp.Token,
+			Token:   resp.GetToken(),
 			Login:   login,
 		}
 	}
 }
 
-func loginUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
+func loginUser(client sproto.GophKeeperClient, login, password string) tea.Cmd {
 	const timeout = 3 * time.Second
 
 	return func() tea.Msg {
-		req := &proto.LoginUserRequest{
-			Login:    login,
-			Password: password,
-		}
+		req := sproto.LoginUserRequest_builder{
+			Login:    &login,
+			Password: &password,
+		}.Build()
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -86,10 +87,10 @@ func loginUser(client proto.GophKeeperClient, login, password string) tea.Cmd {
 		}
 
 		return messages.LoginResultMsg{
-			Success: resp.Success,
+			Success: resp.GetSuccess(),
 			Message: "Logged in successfully",
 			Err:     nil,
-			Token:   resp.Token,
+			Token:   resp.GetToken(),
 			Pasword: password,
 			Login:   login,
 		}
@@ -200,11 +201,11 @@ func saveVault(
 			}
 		}
 
-		req := &proto.SaveVaultRequest{
-			Name:         title,
-			DataType:     string(m.SecretType),
+		req := sproto.SaveVaultRequest_builder{
+			Name:         &title,
+			DataType:     (*string)(&m.SecretType),
 			EcryptedData: encryptedData,
-		}
+		}.Build()
 
 		ctx = contextWithToken(ctx, m.Token)
 
@@ -217,13 +218,13 @@ func saveVault(
 		}
 
 		return messages.SaveVaultResultMsg{
-			Success: resp.Success,
+			Success: resp.GetSuccess(),
 			Err:     nil,
 		}
 	}
 }
 
-func deactivateVaultGrpc(client proto.GophKeeperClient, token string, vault *proto.VaultItem) tea.Cmd {
+func deactivateVaultGrpc(client sproto.GophKeeperClient, token string, vault *sproto.VaultItem) tea.Cmd {
 	const timeout = 3 * time.Second
 
 	return func() tea.Msg {
@@ -233,9 +234,9 @@ func deactivateVaultGrpc(client proto.GophKeeperClient, token string, vault *pro
 			}
 		}
 
-		req := &proto.DeactivateVaultRequest{
-			SecretId: vault.Id,
-		}
+		req := sproto.DeactivateVaultRequest_builder{
+			SecretId: proto.Int32(vault.GetId()),
+		}.Build()
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -251,13 +252,13 @@ func deactivateVaultGrpc(client proto.GophKeeperClient, token string, vault *pro
 		}
 
 		return messages.DeactivateVaultResultMsg{
-			Success: resp.Success,
+			Success: resp.GetSuccess(),
 			Err:     nil,
 		}
 	}
 }
 
-func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, encData []byte, metaData *structpb.Struct) error {
+func uploadFile(ctx context.Context, c sproto.GophKeeperClient, fname string, encData []byte, metaData *structpb.Struct) error {
 	const chunkSize = 1024
 
 	byteReader := bytes.NewReader(encData)
@@ -270,10 +271,10 @@ func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, enc
 		return err
 	}
 
-	req := &proto.UploadFileRequest{
-		FileName: fname,
-		Data:     &proto.UploadFileRequest_MetaData{MetaData: metaData},
-	}
+	req := sproto.UploadFileRequest_builder{
+		FileName: &fname,
+		MetaData: metaData,
+	}.Build()
 
 	err = stream.Send(req)
 	if err != nil {
@@ -292,10 +293,10 @@ func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, enc
 			return err
 		}
 
-		req := &proto.UploadFileRequest{
-			FileName: fname,
-			Data:     &proto.UploadFileRequest_ChunkData{ChunkData: buffer[:n]},
-		}
+		req := sproto.UploadFileRequest_builder{
+			FileName:  &fname,
+			ChunkData: buffer[:n],
+		}.Build()
 
 		err = stream.Send(req)
 		if err != nil {
@@ -318,7 +319,7 @@ func uploadFile(ctx context.Context, c proto.GophKeeperClient, fname string, enc
 // getVaultsStream retrieves vault items via streaming with automatic chunk reassembly.
 //
 //nolint:funlen // gRPC get items stream logic
-func getVaultsStream(client proto.GophKeeperClient, token, encryptionKey string) tea.Cmd {
+func getVaultsStream(client sproto.GophKeeperClient, token, encryptionKey string) tea.Cmd {
 	const timeout = 15 * time.Second
 
 	return func() tea.Msg {
@@ -330,7 +331,7 @@ func getVaultsStream(client proto.GophKeeperClient, token, encryptionKey string)
 
 		ctx = contextWithToken(ctx, token)
 
-		stream, err := client.GetSteamedVaults(ctx, &proto.StreamVaultsRequest{})
+		stream, err := client.GetSteamedVaults(ctx, &sproto.StreamVaultsRequest{})
 		if err != nil {
 			return messages.GetVaultsResultMsg{
 				Err:    fmt.Errorf("failed to create stream: %w", err),
@@ -341,7 +342,7 @@ func getVaultsStream(client proto.GophKeeperClient, token, encryptionKey string)
 		var (
 			currentItem    *vaultItemWithData
 			currentChunks  [][]byte
-			currentMeta    *proto.StreamMetadata
+			currentMeta    *sproto.StreamMetadata
 			mu             sync.Mutex
 			collectedItems []*vaultItemWithData
 		)
@@ -368,11 +369,11 @@ func getVaultsStream(client proto.GophKeeperClient, token, encryptionKey string)
 				}
 			}
 
-			switch payload := response.Payload.(type) {
-			case *proto.StreamVaultsResponse_Metadata:
+			switch response.WhichPayload() {
+			case sproto.StreamVaultsResponse_Metadata_case:
 				mu.Lock()
 
-				currentMeta = payload.Metadata
+				currentMeta = response.GetMetadata()
 
 				// If we have a completed item from previous metadata, add it to results
 				if currentItem != nil && len(currentChunks) > 0 {
@@ -385,27 +386,27 @@ func getVaultsStream(client proto.GophKeeperClient, token, encryptionKey string)
 
 				mu.Unlock()
 
-			case *proto.StreamVaultsResponse_ItemChunk:
-				chunk := payload.ItemChunk
+			case sproto.StreamVaultsResponse_ItemChunk_case:
+				chunk := response.GetItemChunk()
 
 				mu.Lock()
 
 				// Initialize new item if this is the first chunk
-				if chunk.IsFirstChunk {
+				if chunk.GetIsFirstChunk() {
 					currentItem = &vaultItemWithData{
-						VaultItem: chunk.Item,
+						VaultItem: chunk.GetItem(),
 					}
-					currentChunks = make([][]byte, chunk.TotalChunks)
+					currentChunks = make([][]byte, chunk.GetTotalChunks())
 				}
 
 				// Store chunk in correct position
-				if int(chunk.ChunkIndex) < len(currentChunks) {
-					currentChunks[chunk.ChunkIndex] = chunk.EncryptedDataChunk
+				if int(chunk.GetChunkIndex()) < len(currentChunks) {
+					currentChunks[chunk.GetChunkIndex()] = chunk.GetEncryptedDataChunk()
 				}
 
 				// If this is the last chunk and we have metadata indicating last item,
 				// process the completed item immediately
-				if chunk.IsLastChunk && currentMeta != nil && currentMeta.IsLastItem {
+				if chunk.GetIsLastChunk() && currentMeta != nil && currentMeta.GetIsLastItem() {
 					reconstructed := files.MergeChunks(currentChunks)
 					currentItem.ReconstructedData = reconstructed
 					collectedItems = append(collectedItems, currentItem)
@@ -419,27 +420,27 @@ func getVaultsStream(client proto.GophKeeperClient, token, encryptionKey string)
 
 		slog.Info("GetVaultsStream: done collecting", slog.Int("len", len(collectedItems)))
 
-		decryptedVaults := make([]*proto.VaultItem, 0, len(collectedItems))
+		decryptedVaults := make([]*sproto.VaultItem, 0, len(collectedItems))
 		for _, vault := range collectedItems {
-			decryptedVault := &proto.VaultItem{
-				Id:            vault.Id,
-				UserId:        vault.UserId,
-				Name:          vault.Name,
-				DataType:      vault.DataType,
+			decryptedVault := sproto.VaultItem_builder{
+				Id:            proto.Int32(vault.GetId()),
+				UserId:        proto.Int32(vault.GetUserId()),
+				Name:          proto.String(vault.GetName()),
+				DataType:      proto.String(vault.GetDataType()),
 				EncryptedData: nil,
-				MetaData:      vault.MetaData,
-				CreatedAt:     vault.CreatedAt,
-				UpdatedAt:     vault.UpdatedAt,
-				Active:        vault.Active,
-				Version:       vault.Version,
-			}
+				MetaData:      vault.GetMetaData(),
+				CreatedAt:     proto.String(vault.GetCreatedAt()),
+				UpdatedAt:     proto.String(vault.GetUpdatedAt()),
+				Active:        proto.Bool(vault.GetActive()),
+				Version:       proto.Int32(vault.GetVersion()),
+			}.Build()
 
 			if len(vault.ReconstructedData) > 0 {
 				decryptedData, err := encryption.DecryptData(vault.ReconstructedData, encryptionKey)
 				if err != nil {
 					slog.Warn("GetVaultsStream:decryption error", slog.Any("error", err))
 				} else {
-					decryptedVault.EncryptedData = decryptedData
+					decryptedVault.SetEncryptedData(decryptedData)
 				}
 			}
 
@@ -454,15 +455,15 @@ func getVaultsStream(client proto.GophKeeperClient, token, encryptionKey string)
 }
 
 // changePassword func sends gRPC request to the server to update user's password.
-func changePassword(client proto.GophKeeperClient, login, token, currentPassword, newPassword string) tea.Cmd {
+func changePassword(client sproto.GophKeeperClient, login, token, currentPassword, newPassword string) tea.Cmd {
 	const timeout = 3 * time.Second
 
 	return func() tea.Msg {
-		req := &proto.ChangePasswordRequest{
-			CurrentPassword: currentPassword,
-			NewPassword:     newPassword,
-			Login:           login,
-		}
+		req := sproto.ChangePasswordRequest_builder{
+			CurrentPassword: &currentPassword,
+			NewPassword:     &newPassword,
+			Login:           &login,
+		}.Build()
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -478,7 +479,7 @@ func changePassword(client proto.GophKeeperClient, login, token, currentPassword
 		}
 
 		return messages.ChangePasswordResultMsg{
-			Success: resp.Success,
+			Success: resp.GetSuccess(),
 			Err:     nil,
 		}
 	}
@@ -499,7 +500,7 @@ func updateVault(m *Model) tea.Cmd {
 
 		title := m.FormData[m.CurrentForm.Fields[0].Name]
 
-		switch m.SelectedVault.DataType {
+		switch m.SelectedVault.GetDataType() {
 		case secretTypeCredential:
 			secretData = map[string]string{
 				"service":  m.FormData["Service"],
@@ -538,11 +539,11 @@ func updateVault(m *Model) tea.Cmd {
 			}
 		}
 
-		req := &proto.UpdateVaultRequest{
-			Id:            m.SelectedVault.Id,
+		req := sproto.UpdateVaultRequest_builder{
+			Id:            proto.Int32(m.SelectedVault.GetId()),
 			EncryptedData: encryptedData,
-			Name:          title,
-		}
+			Name:          &title,
+		}.Build()
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -558,7 +559,7 @@ func updateVault(m *Model) tea.Cmd {
 		}
 
 		return messages.UpdateVaultResultMsg{
-			Success: resp.Success,
+			Success: resp.GetSuccess(),
 			Err:     nil,
 		}
 	}

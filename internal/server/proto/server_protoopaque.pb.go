@@ -4,6 +4,8 @@
 // 	protoc        v6.32.0
 // source: server.proto
 
+//go:build protoopaque
+
 package proto
 
 import (
@@ -2765,7 +2767,7 @@ const file_server_proto_rawDesc = "" +
 	"\n" +
 	"UploadFile\x12\x19.server.UploadFileRequest\x1a\x11.server.VaultItem(\x01\x12O\n" +
 	"\x10GetSteamedVaults\x12\x1b.server.StreamVaultsRequest\x1a\x1c.server.StreamVaultsResponse0\x01\x12F\n" +
-	"\vUpdateVault\x12\x1a.server.UpdateVaultRequest\x1a\x1b.server.UpdateVaultResponseB\x1fZ\x15internal/server/proto\x92\x03\x05\xd2>\x02\x10\x03b\beditionsp\xe8\a"
+	"\vUpdateVault\x12\x1a.server.UpdateVaultRequest\x1a\x1b.server.UpdateVaultResponseB\x1fZ\x15internal/server/proto\x92\x03\x05\xd2>\x02\x10\x02b\beditionsp\xe8\a"
 
 var file_server_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_server_proto_goTypes = []any{

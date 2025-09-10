@@ -382,7 +382,7 @@ func (m *Model) renderSecretData(vault *proto.VaultItem) string {
 
 	// Try to decode the JSON data (now decrypted)
 	var secretData map[string]any
-	if err := json.Unmarshal(vault.EncryptedData, &secretData); err != nil {
+	if err := json.Unmarshal(vault.GetEncryptedData(), &secretData); err != nil {
 		return fmt.Sprintf(redCross+" Cannot display secret data: %v", err)
 	}
 
@@ -465,13 +465,13 @@ func (m *Model) renderSecretsListView() string {
 					Bold(true)
 			}
 
-			icon := getIcon(vault.DataType)
+			icon := getIcon(vault.GetDataType())
 			displayText := fmt.Sprintf("%s %s | %s | %s %s",
 				icon,
-				str.TruncateString(vault.Name, 18),
-				vault.DataType,
+				str.TruncateString(vault.GetName(), 18),
+				vault.GetDataType(),
 				timeIcon,
-				dates.FormatDate(vault.CreatedAt),
+				dates.FormatDate(vault.GetCreatedAt()),
 			)
 
 			b.WriteString(secretStyle.Render(displayText) + "\n")
@@ -522,11 +522,11 @@ func renderFileDetails(vault *proto.VaultItem) string {
 	fileType := unknown
 
 	// Early return if no metadata
-	if vault.MetaData == nil || vault.MetaData.Fields == nil {
+	if vault.GetMetaData() == nil || vault.GetMetaData().Fields == nil {
 		return renderFileContent(fileStyle, fileName, fileType, fileSize, filePath)
 	}
 
-	fields := vault.MetaData.Fields
+	fields := vault.GetMetaData().Fields
 
 	if nameVal, exists := fields["file_name"]; exists {
 		fileName = nameVal.GetStringValue()
@@ -571,21 +571,21 @@ func (m Model) renderSecretDetailView() string {
 		Padding(1).
 		Width(70)
 
-	infoContent := fmt.Sprintf("%s Name: %s\n", folderIcon, vault.Name)
-	infoContent += fmt.Sprintf("%s Type: %s\n", lockIcon, vault.DataType)
-	infoContent += fmt.Sprintf("%s ID: %d\n", idIcon, vault.Id)
-	infoContent += fmt.Sprintf("%s Created: %s\n", timeIcon, dates.FormatDate(vault.CreatedAt))
-	infoContent += fmt.Sprintf("%s Updated: %s\n", calendarIcon, dates.FormatDate(vault.UpdatedAt))
-	infoContent += fmt.Sprintf("%s Active: %v\n", checkMarkIcon, vault.Active)
-	infoContent += fmt.Sprintf("%s Version: %d", versionIcon, vault.Version)
+	infoContent := fmt.Sprintf("%s Name: %s\n", folderIcon, vault.GetName())
+	infoContent += fmt.Sprintf("%s Type: %s\n", lockIcon, vault.GetDataType())
+	infoContent += fmt.Sprintf("%s ID: %d\n", idIcon, vault.GetId())
+	infoContent += fmt.Sprintf("%s Created: %s\n", timeIcon, dates.FormatDate(vault.GetCreatedAt()))
+	infoContent += fmt.Sprintf("%s Updated: %s\n", calendarIcon, dates.FormatDate(vault.GetUpdatedAt()))
+	infoContent += fmt.Sprintf("%s Active: %v\n", checkMarkIcon, vault.GetActive())
+	infoContent += fmt.Sprintf("%s Version: %d", versionIcon, vault.GetVersion())
 
 	b.WriteString(infoStyle.Render(infoContent) + "\n\n")
 
 	// Show file details for binary data type
-	if vault.DataType == secretTypeBinary {
+	if vault.GetDataType() == secretTypeBinary {
 		fileDetails := renderFileDetails(vault)
 		b.WriteString(fileDetails + "\n\n")
-	} else if len(vault.EncryptedData) > 0 {
+	} else if len(vault.GetEncryptedData()) > 0 {
 		// Try to decode and display the secret data if it's in a known format
 		secretData := m.renderSecretData(vault)
 		b.WriteString(secretData + "\n\n")
@@ -634,12 +634,12 @@ func (m Model) renderSecretDetailView() string {
 			Bold(true)
 	}
 
-	if isUpdatable(secretType(vault.DataType)) {
+	if isUpdatable(secretType(vault.GetDataType())) {
 		buttons = append(buttons, updBtnStyle.Render(textIcon+" Update"))
 	}
 
 	// Download button (only for binary/files)
-	if vault.DataType == secretTypeBinary {
+	if vault.GetDataType() == secretTypeBinary {
 		downloadButtonStyle := lipgloss.NewStyle().
 			Width(15).
 			Height(1).
@@ -882,13 +882,13 @@ func (m *Model) initializeUpdateForm() {
 
 	// Parse the decrypted data based on type
 	var formData map[string]string
-	if err := json.Unmarshal(m.SelectedVault.EncryptedData, &formData); err != nil {
+	if err := json.Unmarshal(m.SelectedVault.GetEncryptedData(), &formData); err != nil {
 		m.Message = "Failed to parse secret data: " + err.Error()
 		return
 	}
 
 	// Set up the appropriate form based on data type
-	switch vault.DataType {
+	switch vault.GetDataType() {
 	case secretTypeCredential:
 		m.CurrentForm = &credentialsForm
 		m.FormData = map[string]string{

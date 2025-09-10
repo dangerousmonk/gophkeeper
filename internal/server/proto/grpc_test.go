@@ -14,30 +14,28 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 )
-
-func withUserIDCtx(ctx context.Context, userID int) context.Context {
-	return context.WithValue(ctx, middleware.UserIDContextKey, userID)
-}
 
 func TestUserRegister(t *testing.T) {
 	expectedUserID := 123
 	expectedLogin := "registerUser"
 	expectedToken := "registerToken"
+	password := "testpassword"
 
 	cases := []struct {
 		name      string
-		req       RegisterUserRequest
+		req       *RegisterUserRequest
 		userStub  func(s *mocks.MockUserHandler)
 		authStub  func(s *authm.MockAuthenticator)
 		wantError bool
 	}{
 		{
 			name: "success",
-			req:  RegisterUserRequest{Login: expectedLogin, Password: "foobar"},
+			req:  RegisterUserRequest_builder{Login: &expectedLogin, Password: &password}.Build(),
 			userStub: func(r *mocks.MockUserHandler) {
 				r.EXPECT().
-					Register(gomock.Any(), &models.RegisterUserRequest{Login: expectedLogin, Password: "foobar"}).
+					Register(gomock.Any(), &models.RegisterUserRequest{Login: expectedLogin, Password: password}).
 					Times(1).
 					Return(&models.RegisterUserResponse{Login: expectedLogin, Token: expectedToken, ID: expectedUserID, Success: true}, nil)
 			},
@@ -50,10 +48,10 @@ func TestUserRegister(t *testing.T) {
 		},
 		{
 			name: "service_error",
-			req:  RegisterUserRequest{Login: expectedLogin, Password: "foobar"},
+			req:  RegisterUserRequest_builder{Login: &expectedLogin, Password: &password}.Build(),
 			userStub: func(r *mocks.MockUserHandler) {
 				r.EXPECT().
-					Register(gomock.Any(), &models.RegisterUserRequest{Login: expectedLogin, Password: "foobar"}).
+					Register(gomock.Any(), &models.RegisterUserRequest{Login: expectedLogin, Password: password}).
 					Times(1).
 					Return(&models.RegisterUserResponse{Success: false}, errors.New("some error"))
 			},
@@ -65,10 +63,10 @@ func TestUserRegister(t *testing.T) {
 		},
 		{
 			name: "authenticator_error",
-			req:  RegisterUserRequest{Login: expectedLogin, Password: "foobar"},
+			req:  RegisterUserRequest_builder{Login: &expectedLogin, Password: &password}.Build(),
 			userStub: func(r *mocks.MockUserHandler) {
 				r.EXPECT().
-					Register(gomock.Any(), &models.RegisterUserRequest{Login: expectedLogin, Password: "foobar"}).
+					Register(gomock.Any(), &models.RegisterUserRequest{Login: expectedLogin, Password: password}).
 					Times(1).
 					Return(&models.RegisterUserResponse{Login: expectedLogin, Token: expectedToken, ID: expectedUserID, Success: true}, nil)
 			},
@@ -97,18 +95,18 @@ func TestUserRegister(t *testing.T) {
 			cases[i].userStub(handler)
 			cases[i].authStub(authenticator)
 
-			resp, err := srv.RegisterUser(context.Background(), &cases[i].req)
+			resp, err := srv.RegisterUser(context.Background(), cases[i].req)
 
 			if cases[i].wantError {
 				require.Error(t, err)
 				require.Nil(t, resp)
 			} else {
 				require.NoError(t, err)
-				assert.True(t, resp.Success)
+				assert.True(t, resp.GetSuccess())
 
-				assert.Equal(t, uint64(expectedUserID), resp.Id)
-				assert.Equal(t, expectedLogin, resp.Login)
-				assert.Equal(t, expectedToken, resp.Token)
+				assert.Equal(t, uint64(expectedUserID), resp.GetId())
+				assert.Equal(t, expectedLogin, resp.GetLogin())
+				assert.Equal(t, expectedToken, resp.GetToken())
 			}
 		})
 	}
@@ -117,19 +115,20 @@ func TestUserRegister(t *testing.T) {
 func TestUserLogin(t *testing.T) {
 	expectedLogin := "testuser"
 	expectedToken := "test-token-123"
+	password := "testpass"
 
 	cases := []struct {
 		name      string
-		req       LoginUserRequest
+		req       *LoginUserRequest
 		userStub  func(s *mocks.MockUserHandler)
 		wantError bool
 	}{
 		{
 			name: "success",
-			req:  LoginUserRequest{Login: expectedLogin, Password: "foobar"},
+			req:  LoginUserRequest_builder{Login: &expectedLogin, Password: &password}.Build(),
 			userStub: func(r *mocks.MockUserHandler) {
 				r.EXPECT().
-					Login(gomock.Any(), expectedLogin, "foobar", gomock.Any()).
+					Login(gomock.Any(), expectedLogin, password, gomock.Any()).
 					Times(1).
 					Return(expectedToken, nil)
 			},
@@ -137,10 +136,10 @@ func TestUserLogin(t *testing.T) {
 		},
 		{
 			name: "service_error",
-			req:  LoginUserRequest{Login: expectedLogin, Password: "foobar"},
+			req:  LoginUserRequest_builder{Login: &expectedLogin, Password: &password}.Build(),
 			userStub: func(r *mocks.MockUserHandler) {
 				r.EXPECT().
-					Login(gomock.Any(), expectedLogin, "foobar", gomock.Any()).
+					Login(gomock.Any(), expectedLogin, password, gomock.Any()).
 					Times(1).
 					Return("", errors.New("some error"))
 			},
@@ -163,15 +162,15 @@ func TestUserLogin(t *testing.T) {
 
 			cases[i].userStub(handler)
 
-			resp, err := srv.LoginUser(context.Background(), &cases[i].req)
+			resp, err := srv.LoginUser(context.Background(), cases[i].req)
 
 			if cases[i].wantError {
 				require.Error(t, err)
 				require.Nil(t, resp)
 			} else {
 				require.NoError(t, err)
-				assert.True(t, resp.Success)
-				assert.Equal(t, expectedToken, resp.Token)
+				assert.True(t, resp.GetSuccess())
+				assert.Equal(t, expectedToken, resp.GetToken())
 			}
 		})
 	}
@@ -185,14 +184,14 @@ func TestChangePassword(t *testing.T) {
 
 	cases := []struct {
 		name      string
-		req       ChangePasswordRequest
+		req       *ChangePasswordRequest
 		userStub  func(s *mocks.MockUserHandler)
 		withCtx   bool
 		wantError bool
 	}{
 		{
 			name: "success",
-			req:  ChangePasswordRequest{Login: login, CurrentPassword: oldPass, NewPassword: newPass},
+			req:  ChangePasswordRequest_builder{Login: &login, CurrentPassword: &oldPass, NewPassword: &newPass}.Build(),
 			userStub: func(r *mocks.MockUserHandler) {
 				r.EXPECT().
 					ChangePassword(gomock.Any(), userID, &models.ChangePasswordRequest{Login: login, CurrentPassword: oldPass, NewPassword: newPass}).
@@ -204,7 +203,7 @@ func TestChangePassword(t *testing.T) {
 		},
 		{
 			name: "no_user",
-			req:  ChangePasswordRequest{Login: login, CurrentPassword: oldPass, NewPassword: newPass},
+			req:  ChangePasswordRequest_builder{Login: &login, CurrentPassword: &oldPass, NewPassword: &newPass}.Build(),
 			userStub: func(r *mocks.MockUserHandler) {
 				r.EXPECT().
 					ChangePassword(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -215,7 +214,7 @@ func TestChangePassword(t *testing.T) {
 		},
 		{
 			name: "service_error",
-			req:  ChangePasswordRequest{Login: login, CurrentPassword: oldPass, NewPassword: newPass},
+			req:  ChangePasswordRequest_builder{Login: &login, CurrentPassword: &oldPass, NewPassword: &newPass}.Build(),
 			userStub: func(r *mocks.MockUserHandler) {
 				r.EXPECT().
 					ChangePassword(gomock.Any(), userID, &models.ChangePasswordRequest{Login: login, CurrentPassword: oldPass, NewPassword: newPass}).
@@ -245,17 +244,17 @@ func TestChangePassword(t *testing.T) {
 			ctx := context.Background()
 
 			if cases[i].withCtx {
-				ctx = withUserIDCtx(context.Background(), userID)
+				ctx = middleware.WithUserID(context.Background(), userID)
 			}
 
-			resp, err := srv.ChangePassword(ctx, &cases[i].req)
+			resp, err := srv.ChangePassword(ctx, cases[i].req)
 
 			if cases[i].wantError {
 				require.Error(t, err)
 				require.Nil(t, resp)
 			} else {
 				require.NoError(t, err)
-				assert.True(t, resp.Success)
+				assert.True(t, resp.GetSuccess())
 			}
 		})
 	}
@@ -269,14 +268,14 @@ func TestUpdateVault(t *testing.T) {
 
 	cases := []struct {
 		name      string
-		req       UpdateVaultRequest
+		req       *UpdateVaultRequest
 		vaultStub func(s *mocks.MockVaultHandler)
 		withCtx   bool
 		wantError bool
 	}{
 		{
 			name: "success",
-			req:  UpdateVaultRequest{Id: int32(vaultID), Name: name, EncryptedData: encryptedData},
+			req:  UpdateVaultRequest_builder{Id: proto.Int32(int32(vaultID)), Name: &name, EncryptedData: encryptedData}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Update(gomock.Any(), vaultID, userID, name, encryptedData).
@@ -288,7 +287,7 @@ func TestUpdateVault(t *testing.T) {
 		},
 		{
 			name: "no_user",
-			req:  UpdateVaultRequest{Id: int32(vaultID), Name: name, EncryptedData: encryptedData},
+			req:  UpdateVaultRequest_builder{Id: proto.Int32(int32(vaultID)), Name: &name, EncryptedData: encryptedData}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Update(gomock.Any(), vaultID, userID, name, encryptedData).Times(0)
@@ -298,7 +297,7 @@ func TestUpdateVault(t *testing.T) {
 		},
 		{
 			name: "owner_missmatch",
-			req:  UpdateVaultRequest{Id: int32(vaultID), Name: name, EncryptedData: encryptedData},
+			req:  UpdateVaultRequest_builder{Id: proto.Int32(int32(vaultID)), Name: &name, EncryptedData: encryptedData}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Update(gomock.Any(), vaultID, userID, name, encryptedData).
@@ -310,7 +309,7 @@ func TestUpdateVault(t *testing.T) {
 		},
 		{
 			name: "service_error",
-			req:  UpdateVaultRequest{Id: int32(vaultID), Name: name, EncryptedData: encryptedData},
+			req:  UpdateVaultRequest_builder{Id: proto.Int32(int32(vaultID)), Name: &name, EncryptedData: encryptedData}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Update(gomock.Any(), vaultID, userID, name, encryptedData).
@@ -340,17 +339,17 @@ func TestUpdateVault(t *testing.T) {
 			ctx := context.Background()
 
 			if cases[i].withCtx {
-				ctx = withUserIDCtx(context.Background(), userID)
+				ctx = middleware.WithUserID(context.Background(), userID)
 			}
 
-			resp, err := srv.UpdateVault(ctx, &cases[i].req)
+			resp, err := srv.UpdateVault(ctx, cases[i].req)
 
 			if cases[i].wantError {
 				require.Error(t, err)
 				require.Nil(t, resp)
 			} else {
 				require.NoError(t, err)
-				assert.True(t, resp.Success)
+				assert.True(t, resp.GetSuccess())
 			}
 		})
 	}
@@ -362,14 +361,14 @@ func TestDeactivateVault(t *testing.T) {
 
 	cases := []struct {
 		name      string
-		req       DeactivateVaultRequest
+		req       *DeactivateVaultRequest
 		vaultStub func(s *mocks.MockVaultHandler)
 		withCtx   bool
 		wantError bool
 	}{
 		{
 			name: "success",
-			req:  DeactivateVaultRequest{SecretId: int32(vaultID)},
+			req:  DeactivateVaultRequest_builder{SecretId: proto.Int32(int32(vaultID))}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Deactivate(gomock.Any(), userID, vaultID).
@@ -381,7 +380,7 @@ func TestDeactivateVault(t *testing.T) {
 		},
 		{
 			name: "no_user",
-			req:  DeactivateVaultRequest{SecretId: int32(vaultID)},
+			req:  DeactivateVaultRequest_builder{SecretId: proto.Int32(int32(vaultID))}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Deactivate(gomock.Any(), userID, vaultID).Times(0)
@@ -391,7 +390,7 @@ func TestDeactivateVault(t *testing.T) {
 		},
 		{
 			name: "service_error",
-			req:  DeactivateVaultRequest{SecretId: int32(vaultID)},
+			req:  DeactivateVaultRequest_builder{SecretId: proto.Int32(int32(vaultID))}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Deactivate(gomock.Any(), userID, vaultID).
@@ -421,17 +420,17 @@ func TestDeactivateVault(t *testing.T) {
 			ctx := context.Background()
 
 			if cases[i].withCtx {
-				ctx = withUserIDCtx(context.Background(), userID)
+				ctx = middleware.WithUserID(context.Background(), userID)
 			}
 
-			resp, err := srv.DeactivateVault(ctx, &cases[i].req)
+			resp, err := srv.DeactivateVault(ctx, cases[i].req)
 
 			if cases[i].wantError {
 				require.Error(t, err)
 				require.Nil(t, resp)
 			} else {
 				require.NoError(t, err)
-				assert.True(t, resp.Success)
+				assert.True(t, resp.GetSuccess())
 			}
 		})
 	}
@@ -441,17 +440,18 @@ func TestSaveVault(t *testing.T) {
 	name := "first vault"
 	encryptedData := []byte("\xc96b541e13643d2b4c4df43")
 	userID := 123
+	credType := "credentials"
 
 	cases := []struct {
 		name      string
-		req       SaveVaultRequest
+		req       *SaveVaultRequest
 		vaultStub func(s *mocks.MockVaultHandler)
 		withCtx   bool
 		wantError bool
 	}{
 		{
 			name: "success",
-			req:  SaveVaultRequest{Name: name, DataType: "credentials", EcryptedData: encryptedData},
+			req:  SaveVaultRequest_builder{Name: &name, DataType: &credType, EcryptedData: encryptedData}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Save(gomock.Any(), gomock.Any()).
@@ -471,7 +471,7 @@ func TestSaveVault(t *testing.T) {
 		},
 		{
 			name: "no_user",
-			req:  SaveVaultRequest{Name: name, DataType: "credentials", EcryptedData: encryptedData},
+			req:  SaveVaultRequest_builder{Name: &name, DataType: &credType, EcryptedData: encryptedData}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Save(gomock.Any(), gomock.Any()).
@@ -482,7 +482,7 @@ func TestSaveVault(t *testing.T) {
 		},
 		{
 			name: "service_error",
-			req:  SaveVaultRequest{Name: name, DataType: "credentials", EcryptedData: encryptedData},
+			req:  SaveVaultRequest_builder{Name: &name, DataType: &credType, EcryptedData: encryptedData}.Build(),
 			vaultStub: func(r *mocks.MockVaultHandler) {
 				r.EXPECT().
 					Save(gomock.Any(), gomock.Any()).
@@ -512,17 +512,17 @@ func TestSaveVault(t *testing.T) {
 			ctx := context.Background()
 
 			if cases[i].withCtx {
-				ctx = withUserIDCtx(context.Background(), userID)
+				ctx = middleware.WithUserID(context.Background(), userID)
 			}
 
-			resp, err := srv.SaveVault(ctx, &cases[i].req)
+			resp, err := srv.SaveVault(ctx, cases[i].req)
 
 			if cases[i].wantError {
 				require.Error(t, err)
 				require.Nil(t, resp)
 			} else {
 				require.NoError(t, err)
-				assert.True(t, resp.Success)
+				assert.True(t, resp.GetSuccess())
 			}
 		})
 	}

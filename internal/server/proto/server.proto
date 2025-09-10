@@ -1,10 +1,12 @@
-syntax = "proto3";
+edition = "2023";
 
 package server;
 
 option go_package = "internal/server/proto";
+option features.(pb.go).api_level = API_OPAQUE;
 
 import "google/protobuf/struct.proto";
+import "google/protobuf/go_features.proto";
 
 
 service GophKeeper {

@@ -12,13 +12,38 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ContextKey represents a type for context keys.
-type ContextKey struct {
+// contextKey represents a type for context keys.
+type contextKey struct {
 	name string
 }
 
-// UserIDContextKey is the key used to store user ID in context.
-var UserIDContextKey = &ContextKey{"userID"}
+func (k *contextKey) String() string { return "gophkeeper/middleware context value " + k.name }
+
+// userIDContextKey is the key used to store user ID in context.
+var userIDContextKey = &contextKey{"userID"}
+
+// WithUserID adds userID to context.
+func WithUserID(ctx context.Context, userID int) context.Context {
+	return context.WithValue(ctx, userIDContextKey, userID)
+}
+
+// UserIDFromContext retrieves the authenticated user's ID from the context.
+// Returns:
+//   - string: The user ID if found and of correct type
+//   - bool:   True if user ID was found and is valid string, false otherwise
+func UserIDFromContext(ctx context.Context) (int, bool) {
+	if ctx == nil {
+		return -1, false
+	}
+
+	if val := ctx.Value(userIDContextKey); val != nil {
+		if userID, ok := val.(int); ok {
+			return userID, true
+		}
+	}
+
+	return -1, false
+}
 
 const (
 	bearerPrefix = "Bearer "
@@ -72,28 +97,10 @@ func AuthUnaryInterceptor(jwtManager auth.Authenticator) grpc.UnaryServerInterce
 
 		userID := claims.UserID
 
-		ctx = context.WithValue(ctx, UserIDContextKey, userID)
+		ctx = WithUserID(ctx, userID)
 
 		return handler(ctx, req)
 	}
-}
-
-// UserIDFromContext retrieves the authenticated user's ID from the context.
-// Returns:
-//   - string: The user ID if found and of correct type
-//   - bool:   True if user ID was found and is valid string, false otherwise
-func UserIDFromContext(ctx context.Context) (int, bool) {
-	if ctx == nil {
-		return -1, false
-	}
-
-	if val := ctx.Value(UserIDContextKey); val != nil {
-		if userID, ok := val.(int); ok {
-			return userID, true
-		}
-	}
-
-	return -1, false
 }
 
 // wrappedServerStream wraps the original ServerStream to override the context.
@@ -117,7 +124,7 @@ func StreamAuthInterceptor(jwtManager auth.Authenticator) grpc.StreamServerInter
 			return status.Errorf(codes.Unauthenticated, "authentication failed: %v", err)
 		}
 
-		ctx = context.WithValue(ctx, UserIDContextKey, userID)
+		ctx = WithUserID(ctx, userID)
 
 		wrappedStream := &wrappedServerStream{ss, ctx}
 
